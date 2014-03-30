@@ -45,9 +45,12 @@ graaf.links[graaf.links.length]={"source":s,"target":t}
 }//end dotfile for loop */
 
 }//end asqg for loop
-console.log(graaf.nodes[4]);
-console.log(graaf.links[18]);
-console.log(regels[6720].split(" "));
+//reload graph with nodes and links
+var force = d3.layout.force()
+	.nodes(graaf.nodes)
+	.links(graaf.links)
+	.start()
+
 }//end reader.onload
 })//end bestand.addeventlistener
 };//end window.onload
