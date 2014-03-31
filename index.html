@@ -3,53 +3,66 @@
 		<title>Stringit</title>
 		<script type="text/javascript" src="d3/d3.v3.min.js"></script>
 		<script type="text/javascript" src="nummer2.js"></script>
+	<style>
+	.node {
+	  stroke: #fff;
+	  stroke-width: 1.5px;
+	}
+
+	.link {
+	  fill: none;
+	  stroke: #bbb;
+	}
+
+	</style>
 	</head>
 	<body>
-		<textarea id="invoer" cols="70" rows="9"></textarea>
-		<input type="submit" id="verstuur" onclick="maakLijst()"></input>
-		<br />
 		<input type="file" id="bestand"></input>
 		<a href="graaf.html">graaf</a>
 		<div id="display"></div>	
-		<script>
+	<script>
 
-		var width = 1895,
-			height = 995,
-			breed=7000,
-			hoog=7000;
-		
-		var svg = d3.select("body").append("svg")
-			.attr("width", width)
-			.attr("height", height);
-			
-		
-		var force = d3.layout.force()
-			.charge(-120) 
-			.linkDistance(20)
-			.linkStrength(17)
-			.size([width, height]);
-			.start()	
+	var width = 660,
+		height = 400;
+	
+	var color = d3.scale.category20();
 
-		var link = svg.selectAll(".link")
-			.data(bilinks)
-			.enter().append("path")
-			.attr("class", "link");
+	var svg = d3.select("body").append("svg")
+		.attr("width", width)
+		.attr("height", height);
 
-		var node = svg.selectAll(".node")
-			.data(graph.nodes)
-			.enter().append("circle")
-			.attr("class", "node")
-			.attr("r", 2)
-			.call(force.drag);
+	var force = d3.layout.force()
+		.nodes(minigraaf.nodes)
+		.links(minigraaf.links)
+		.size([width, height])
+		.charge(-200)
+		.on("tick", tick)
+		.start();
 
-		node.append("title")
-			.text(function(d) { return d.name; });
+	var link = svg.selectAll(".link")
+	   .data(minigraaf.links)
+	 .enter().append("line")
+	   .attr("class", "link");
 
-		force.on("tick", function() {
-			link.attr("d", function(d) {return "M"+d[0].x+","+d[0].y+"S"+d[1].x+","+d[1].y+" "+d[2].x +","+ d[2].y});
-			node.attr("transform", function(d) {return "translate("+d.x+","+d.y+")"});
-		});			
-		
-		</script>
+	var node = svg.selectAll(".node")
+	   .data(minigraaf.nodes)
+	 .enter().append("circle")
+	   .attr("class", "node")
+	   .attr("r", 4.5)
+	   .style("fill", function(d) { return color(d.group); })
+	   .call(force.drag);
+
+	function tick() {
+	  link.attr("x1", function(d) { return d.source.x; })
+		  .attr("y1", function(d) { return d.source.y; })
+		  .attr("x2", function(d) { return d.target.x; })
+		  .attr("y2", function(d) { return d.target.y; });
+
+	  node.attr("cx", function(d) { return d.x; })
+		  .attr("cy", function(d) { return d.y; });
+	}
+
+	</script>
+	<input type="button" id="druk" value="knop" onclick="herladen()"></input>
 	</body>
 </html>

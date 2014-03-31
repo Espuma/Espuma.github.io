@@ -25,7 +25,7 @@ tos=parseInt(info.split(" ")[5])
 tol=parseInt(info.split(" ")[6])
 revcomp=parseInt(info.split(" ")[8])
 graaf.links[graaf.links.length]={"source":s,"target":t,"sStart":sos,"sEnd":sol,"tStart":tos,"tEnd":tol,"revcomp":revcomp}//if revcomp=1, reverse one of the seqs to match them
-}
+}//de naam van de contig wordt nu opgeslagen als source/target, niet de plaats in de lijst van nodes. findNode() moet nog gebruikt worden.
 if (regels[i].split("\t")[0]==="VT"){//collect nodes
 n=regels[i].split("\t")[1]
 seq=regels[i].split("\t")[2]
@@ -46,6 +46,9 @@ graaf.links[graaf.links.length]={"source":s,"target":t}
 
 }//end asqg for loop
 //reload graph with nodes and links
+
+console.log(graaf)
+
 var force = d3.layout.force()
 	.nodes(graaf.nodes)
 	.links(graaf.links)
@@ -75,3 +78,29 @@ var p = d3.select("body").selectAll("p")
   .text(function(d){return "s="+d.source+", t="+d.target;});
 }
 */
+
+var minigraaf={"nodes":[{"id":"henk","group":4},{"id":"ab"},{"id":"bc"},{"id":"cd"}],"links":[{source:1,target:0},{source:2,target:1}]};
+
+function herladen(){
+	minigraaf.links.push({source:2,target:0}, {source:0,target:3}); 
+	minigraaf.nodes.push({"id":"piet"})
+	minigraaf.nodes.push({source:0,target:4},{source:1,target:4},{source:2,target:4},{source:3,target:4},{source:1,target:3})
+
+	var link = svg.selectAll(".link")
+		.data(minigraaf.links)
+		.enter().insert("line", ".node")
+		.attr("stroke", "#bbb")
+		.attr("class", "link");
+
+	var node = svg.selectAll(".node")
+		.data(minigraaf.nodes)
+		.enter().insert("circle")
+		.attr("class", "node")
+		.attr("r", 4.5)
+		.style("fill", function(d) { return color(d.group); })
+		.call(force.drag);
+
+	force.start();
+
+console.log("tekst")
+};

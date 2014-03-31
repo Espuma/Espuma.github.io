@@ -15,7 +15,7 @@
 
 </style>
 <body>
-<script type="text/javascript" src="http://d3js.org/d3.v3.min.js"></script>
+<script type="text/javascript" src="d3/d3.v3.min.js"></script>
 <script>
 
 var width=7000,
@@ -38,15 +38,15 @@ d3.json("miserables.json", function(error, graph) {
       links = [],
       bilinks = [];
 
-  graph.links.forEach(function(link) {
+  graph.links.forEach(function(link) {//makes bilinks for bezier curves, also finds names and makes links ordered
     var s = nodes[link.source],
         t = nodes[link.target],
         i = {}; // intermediate node
+	//console.log(s);
     nodes.push(i);
     links.push({source: s, target: i}, {source: i, target: t});
     bilinks.push([s, i, t]);
   });
-
   force
       .nodes(nodes)
       .links(links)
@@ -73,3 +73,4 @@ d3.json("miserables.json", function(error, graph) {
 });
 
 </script>
+<script type="text/javascript">console.log(nodes["contig-0"])</script>
