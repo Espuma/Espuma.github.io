@@ -1,4 +1,5 @@
 var fileDisplay=document.getElementById('display');
+
 window.onload=function(){
 //load file; file recognition not yet implemented, below code is for formatting .dot files
 var bestand=document.getElementById('bestand');
@@ -32,9 +33,6 @@ if(regels[i].split("\t")[0]==="ED"){//collect links and overlap information
 info=regels[i].split("\t")[1]
 s=info.split(" ")[0]
 t=info.split(" ")[1]
-
-
-
 sos=parseInt(info.split(" ")[2])
 sol=parseInt(info.split(" ")[3])
 tos=parseInt(info.split(" ")[5])
@@ -44,10 +42,16 @@ graaf.links[graaf.links.length]={"source":vindNode(s),"target":vindNode(t),"sSta
 
 }//de naam van de contig wordt nu opgeslagen als source/target, niet de plaats in de lijst van nodes. findNode() moet nog gebruikt worden.
 }//end asqg for loop
-//reload graph with nodes and links
-	console.log(graaf.links[100]);
+//load graph with nodes and links
+window.graaf=graaf;
+	var maxLen=0;
+	console.log(maxLen);
+	for (i in graaf.nodes){if (graaf.nodes[i]["sequence"].length>maxLen){maxLen=graaf.nodes[i]["sequence"].length}};
+	console.log(maxLen);
 	var width = 6600,
-		height = 6400;
+		height = 6400,
+		zoomx=1,
+		zoomy=1;
 	
 	var color = d3.scale.category20();
 
@@ -72,7 +76,7 @@ graaf.links[graaf.links.length]={"source":vindNode(s),"target":vindNode(t),"sSta
 	   .data(graaf.nodes)
 	 .enter().append("circle")
 	   .attr("class", "node")
-	   .attr("r", 4.5)
+	   .attr("r", function(d){return 5*(d.source.sequence.length/maxLen)})
 	   .style("fill", function(d) { return color(d.group); })
 	   .call(force.drag);
 
