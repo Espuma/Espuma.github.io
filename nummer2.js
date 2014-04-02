@@ -54,8 +54,8 @@ if(regels[i].split("\t")[0]==="ED"){//collect links and overlap information
 window.graaf=graaf;
 	var maxLen=0;
 	for (i in graaf.nodes){if (graaf.nodes[i]["sequence"].length>maxLen){maxLen=graaf.nodes[i]["sequence"].length}};
-	var w=6600,
-		h=6400,
+	var w=graaf.links.length/2,
+		h=graaf.links.length/2,
 		zoomx=1,
 		zoomy=1;
 	
@@ -75,15 +75,16 @@ window.graaf=graaf;
 		.start();
 
 	var link = svg.selectAll(".link")
-	   .data(graaf.links)
-	 .enter().append("line")
-	   .attr("class", "link");
+		.attr("id","linksvg")
+		.data(graaf.links)
+		.enter().append("line")
+		.attr("class", "link");
 
 	var node = svg.selectAll(".node")
 	   .data(graaf.nodes)
 	 .enter().append("circle")
 	   .attr("class", "node")
-	   .attr("r", function(d){return 10*(d.sequence.length/maxLen)})
+	   .attr("r", function(d){return 25*(d.sequence.length/maxLen)})
 	   .style("fill", function(d) { if(d.group===0){return "blue"}else{return "orange"}})
 	   .call(force.drag);
 
