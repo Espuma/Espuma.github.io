@@ -27,7 +27,7 @@ var loadFile=function(ev1){ //load file, return contents and name
 	reader.onload=function(){
 	var fileContent=reader.result
 	//*de hele show draait nu hier, maar vanwege dynamisch laden liever niet.
-	makeGraaf(ASQGparse(fileContent.split("\n")))
+	makeGraaf(ASQGparse(fileContent.split("\n")))//maybe use callbacks to take this out?
 	//*/
 	}
 	reader.readAsText(loaded)
