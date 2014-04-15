@@ -1,7 +1,6 @@
 //global vars
 var graaf={"nodes":[],"links":[],"usedNodes":[]} //{"nodes":[{}],"links":[{},{},{}]}
 var groepen=[];
-console.log('tekst')
 
 //functions
 var ASQGparse=function(regels){
@@ -9,26 +8,40 @@ var ASQGparse=function(regels){
 		if (regels[i].split("\t")[0]==="VT"){//collect nodes
 			var id=regels[i].split("\t")[1]
 			var seq=regels[i].split("\t")[2]
-			graaf.nodes[graaf.nodes.length]={"id":id,"sequence":seq,"group":kleurGroep(id)}
-		}//end node if loop
+			graaf.nodes[graaf.nodes.length]={"id":id,"sequence":seq,"length":seq.length,"group":kleurGroep(id)}
+		}//end node loop
 
 		if(regels[i].split("\t")[0]==="ED"){//collect links and overlap information
-			info=regels[i].split("\t")[1]
-			s=info.split(" ")[0]
-			t=info.split(" ")[1]
-			sos=parseInt(info.split(" ")[2])
-			sol=parseInt(info.split(" ")[3])
-			tos=parseInt(info.split(" ")[5])
-			tol=parseInt(info.split(" ")[6])
-			revcomp=parseInt(info.split(" ")[8])
+			var info=regels[i].split("\t")[1],
+				s=info.split(" ")[0],
+				t=info.split(" ")[1],
+				sos=parseInt(info.split(" ")[2]),
+				sol=parseInt(info.split(" ")[3]),
+				tos=parseInt(info.split(" ")[5]),
+				tol=parseInt(info.split(" ")[6]),
+				revcomp=parseInt(info.split(" ")[8]);
 			graaf.links[graaf.links.length]={"source":vindNode(s),"target":vindNode(t),"sStart":sos,"sEnd":sol,"tStart":tos,"tEnd":tol,"revcomp":revcomp}//if revcomp=1, reverse one of the seqs to match them
 			if(!(s in graaf.usedNodes)){graaf.usedNodes.push({"id":s})};
 			if(!(t in graaf.usedNodes)){graaf.usedNodes.push({"id":t})};
-		}//end link if loop
+		}//end link loop
 	}//end asqg for loop
 	
 	return graaf
 }//end ASQGparse function
+
+var Newblerparse=function(regels){
+	for (i=0);i<regels.length;i++){
+		if(typeof regels[i].split("/t")[0]==="number"){//collect nodes
+			var waarschuwing="sorry, newbler zuigt in output. geen sequences, geen groepen"
+			var id=regels.split("/t")[1]
+			var lengte=regels.split("/t")[2]
+			graaf.nodes[graaf.nodes.length]={"id":id,"sequence":"","length":lengte,"group":0}
+		}//end node loop
+		if(regels[i].split("/t")[0]==="C"){//collect links
+			
+
+		}
+}
 
 var vindNode = function (id) {
 	for (var i in graaf["nodes"]) {
@@ -43,22 +56,26 @@ var kleurGroep = function(id){
 	return groepen.indexOf(id.substr(0,3))
 }	
 
-window.onload=function(){//is deze nog nodig?
+var exporteer=function (graaf){//lees data object, schrijf naar .dot file.
+	var dotbestand="digraph:{\n"
+	for (regel in graaf.nodes){dotbestand.push(regel.id+" [comment=\""+regel.sequence+"\",group=\""+regel.group+"\"]\n")}
+	for (regel in graaf.links){dotbestand.push(regel.source+" -> "+regel.target+"[comment=\"sStart=\""+regel.sStart+"\",sEnd=\""+regel.sEnd+"\",tStart=\""+regel.tStart+"\",tEnd=\""+regel.tEnd+"\",revcomp=\""+regel.revcomp+"\"]\n")}
+	dotbestand+="}"
+}
 
 
+window.onload=function(){//is nodig voor addEventListener
 	bestand.addEventListener('change',function(){ //when file is loaded, start with netvis
-
-		laadBestand=bestand.files[0];
 		var reader=new FileReader();
-		reader.readAsText(laadBestand,"UTF-8");
+		reader.readAsText(bestand.files[0],"UTF-8");
 
 		reader.onload=function(event){
-
 			regels=event.target.result.split("\n");//load file, split by lines
-			ASQGparse(regels)
-
+			
+			ASQGparse(regels)//recognize file type, apply right parser
+			//hier reader.onload afkappen en een graaf.onload maken voor dynamisch laden?
 			//load graph with nodes and links
-			window.graaf=graaf;
+			//window.graaf=graaf;
 			var maxLen=0;
 			for (i in graaf.nodes){if (graaf.nodes[i]["sequence"].length>maxLen){maxLen=graaf.nodes[i]["sequence"].length}};
 			var w=graaf.links.length/4,
@@ -135,21 +152,8 @@ window.onload=function(){//is deze nog nodig?
 			function transform(d) {
 				return "translate(" + x(d[0]) + "," + y(d[1]) + ")";
 			}
-			
-			var exporteer=function (){//lees data object, schrijf naar .dot file. klaar voor download onclick.
-				//{"source":vindNode(s),"target":vindNode(t),"sStart":sos,"sEnd":sol,"tStart":tos,"tEnd":tol,"revcomp":revcomp}
-				var dotbestand="digraph:{\n"
-				for (regel in graaf.nodes){dotbestand+=regel.id+" [comment=\""+regel.sequence+"\",group=\""+regel.group+"\"]\n"}
-				for (regel in graaf.links){dotbestand+=regel.source+" -> "+regel.target+"[comment=\"sStart=\""+regel.sStart+"\",sEnd=\""+regel.sEnd+"\",tStart=\""+regel.tStart+"\",tEnd=\""+regel.tEnd+"\",revcomp=\""+regel.revcomp+"\"]\n"}
-				dotbestand+="}"
-			
-			var download=d3.select("body").append("a")
-					.attr("href",dotbestand)
-					.attr("download","export.dot")//read file stats for name generation
-					.append
-					
-			}
-			exporteer();	
+			//exporteer(graaf)//make element with 'right click, save as, download .dot file
+
 		}//end reader.onload
 	})//end bestand.addeventlistener
 };//end window.onload
