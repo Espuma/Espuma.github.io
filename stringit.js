@@ -3,36 +3,27 @@
 //color grouping does not work for all groups, and is overfitted/not generalized
 //if not using doEverything, need some way of updating displayed graaf, as that functionality is taken out again
 //zooming is once again reset at zero
+	var groepen=[];
+	var graaf={"nodes":[],"links":[],"usedNodes":[]} //{"nodes":[{}],"links":[{},{},{}]}
 
-//global vars
-var groepen=[];
-var graaf={"nodes":[],"links":[],"usedNodes":[]} //{"nodes":[{}],"links":[{},{},{}]}
 window.addEventListener('load',function(){
 	var bestand=document.getElementById('bestan')
-	bestand.addEventListener('change',loadFile,false)//needs to be doEverything
-}
-);
+	bestand.addEventListener('change',doEverything,false)//
+});
 
 //functions
-var doEverything=function(){
-loadFile(file_onload)//{return fileContent}
-parseFileInput(fileContent)//{return graaf}
-makeGraaf(graaf)//{build page}
-exporteer(graaf)//{return dotfile}
+var doEverything=function(event){
+loadFile(event,function(content){makeGraaf(ASQGparse(content.split("\n")))})//{return fileContent, split by lines, feed through parsers, make graaf}
+//need callback in parser as well, for dynamic loading
 }
 
-var loadFile=function(ev1){ //load file, return contents and name
-	var loaded=ev1.target.files[0]
+var loadFile=function(ev1,callback){ //load file, return contents
+	//var loaded=ev1.target.files[0] not used now, can be used to get file properties (name/ext)
 	var reader=new FileReader();
 	reader.onload=function(){
 	var fileContent=reader.result
-	//*de hele show draait nu hier, maar vanwege dynamisch laden liever niet.
-	makeGraaf(ASQGparse(fileContent.split("\n")))//maybe use callbacks to take this out?
-	//*/
+	callback(fileContent)
 	}
-	reader.readAsText(loaded)
-	
-	return [loaded.name,reader.result]
 }//end loadFile
 
 //function parseFileInput(fileContent){return graaf}
