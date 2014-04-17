@@ -1,33 +1,45 @@
 //links object info needs working, to incorporate directionality, correctly calculated from different input files
 //graaf.usedNodes is not working correctly currently, everything gets put in exactly twice
 //color grouping does not work for all groups, and is overfitted/not generalized
-//if not using doEverything, need some way of updating displayed graaf, as that functionality is taken out again
-//zooming is once again reset at zero
+//make doEverything bigger to include other ways of triggering events, using that to update the graaf?
+//the work on zooming is once again reset at zero
 	var groepen=[];
 	var graaf={"nodes":[],"links":[],"usedNodes":[]} //{"nodes":[{}],"links":[{},{},{}]}
 
 window.addEventListener('load',function(){
 	var bestand=document.getElementById('bestan')
-	bestand.addEventListener('change',doEverything,false)//
+	bestand.addEventListener('change',doEverything,false)
 });
 
 //functions
-var doEverything=function(event){
-loadFile(event,function(content){makeGraaf(ASQGparse(content.split("\n")))})//{return fileContent, split by lines, feed through parsers, make graaf}
-//need callback in parser as well, for dynamic loading
+function doEverything(event){
+console.log("1");
+loadFile(event,parseFileInput);
+/*this doesn't really do anything right now, 
+but eventually needs to control the whole building of the graaf. 
+The calling of makeGraaf in loadFile needs to be moved to here.*/
 }
 
-var loadFile=function(ev1,callback){ //load file, return contents
-	//var loaded=ev1.target.files[0] not used now, can be used to get file properties (name/ext)
+function loadFile(ev1,callback){ //load file, return contents
+console.log("2")
+	var loaded=ev1.target.files[0]
 	var reader=new FileReader();
 	reader.onload=function(){
-	var fileContent=reader.result
-	callback(fileContent)
-	}
+		console.log("3")
+		var fileContent=event.target.result;
+		callback(fileContent,loaded.name,makeGraaf)};
+	reader.readAsText(loaded)
 }//end loadFile
 
-//function parseFileInput(fileContent){return graaf}
-var ASQGparse=function(regels){
+function parseFileInput(content,filename,callback){
+console.log(content.split("\n")[2])
+regels=content.split("\n")
+if(filename.split(".")[1]==="asqg"){var graaf= ASQGparse(regels)}
+if(filename.search("454")>-1){var graaf=Newblerparse(regels)}
+callback(graaf)
+}
+
+function ASQGparse(regels){
 	for(i=0;i<regels.length;i++){//asqg parsing
 		if (regels[i].split("\t")[0]==="VT"){//collect nodes
 			var id=regels[i].split("\t")[1]
@@ -53,32 +65,34 @@ var ASQGparse=function(regels){
 	return graaf
 }//end ASQGparse function
 
-var Newblerparse=function(regels){
+function Newblerparse(regels){
+	console.log(typeof regels[2].split("\t")[0])
 	for (i=0;i<regels.length;i++){
-		if(typeof regels[i].split("/t")[0]==="number"){//collect nodes
+		if(!isNaN(parseInt(regels[i].split("\t")[0]))){//collect nodes
 			var waarschuwing="sorry, newbler zuigt in output. geen sequences, geen groepen"
-			var id=regels.split("/t")[0]
-			var contig=regels.split("/t")[1]
-			var lengte=regels.split("/t")[2]
-			graaf.nodes[graaf.nodes.length]={"id":id,"sequence":contig,"length":lengte,"group":0}
+			var id=regels[i].split("\t")[0]
+			var contig=regels[i].split("\t")[1]
+			var lengte=regels[i].split("\t")[2]
+			graaf.nodes.push({"id":id,"sequence":contig,"length":lengte,"group":0})
 		}//end node loop
-		if(regels[i].split("/t")[0]==="C"){//collect links
-			s=regels.split("/t")[1]
-			t=regels.split("/t")[3]
-			graaf.links[graaf.links.length]={"source":s,"target":t,"sStart":"","sEnd":"","tStart":"","tEnd":"","revcomp":""}
+		if(regels[i].split("\t")[0]==="C"){//collect links
+			s=regels[i].split("\t")[1]
+			t=regels[i].split("\t")[3]
+			graaf.links[graaf.links.length]={"source":vindNode(s),"target":vindNode(t),"sStart":"","sEnd":"","tStart":"","tEnd":"","revcomp":""}
 			if(!(s in graaf.usedNodes)){graaf.usedNodes.push({"id":s})};
 			if(!(t in graaf.usedNodes)){graaf.usedNodes.push({"id":t})};
 		}
 	}
+	console.log(graaf.nodes[2])
 	return graaf
 }
 
-var kleurGroep = function(id){
+function kleurGroep(id){
 	if (!(id.substr(0,3) in groepen)){groepen.push(id.substr(0,3))}
 	return groepen.indexOf(id.substr(0,3))
 }	
 
-var vindNode = function (id) {
+function vindNode(id) {
 	for (var i in graaf["nodes"]) {
 		if (graaf["nodes"][i]["id"] === id) {
 			return graaf["nodes"][i]
@@ -88,12 +102,12 @@ var vindNode = function (id) {
 
 
 	
-var makeGraaf=function(graaf){
+function makeGraaf(graaf){
 	
 	var maxLen=longestContig(graaf)
 	
-	var w=(graaf.links.length+graaf.nodes.length)/4,
-		h=(graaf.links.length+graaf.nodes.length)/4,
+	var w=700,
+		h=700,//(graaf.nodes.length+graaf.links.length),
 		zoomx=1,
 		zoomy=1,
 		rand=30;//border padding
@@ -104,7 +118,7 @@ var makeGraaf=function(graaf){
 		else {return 0.2*procent+5}
 	}
 		
-	var color = d3.scale.category20();
+	var color = d3.scale.category20();//maybe change color orders?
 	
 	var x = d3.scale.linear()
 		.domain([0, w])
@@ -121,17 +135,15 @@ var makeGraaf=function(graaf){
 		.attr("preserveAspectRatio", "xMidYMid meet")
 		.append("svg:g")
 		.attr("id","veld")
-		.call(d3.behavior.zoom().on("zoom",zoom)); //.x(x).y(y).scaleExtent([1, 8])
+		//.call(d3.behavior.zoom().on("zoom",zoom)); //.x(x).y(y).scaleExtent([1, 8])//I have no idea. It doesn't work right now...
 		
-	//var VIS=svg.append('svg:g');
-
 	var force = d3.layout.force()
 		.nodes(graaf.nodes)
 		.links(graaf.links)
 		.size([w, h])
 		.charge(-30)
-		.linkDistance(1)
-		.linkStrength(12)
+		.linkDistance(15)
+		.linkStrength(1)
 		.on("tick", tick)
 		.start();
 
@@ -160,7 +172,7 @@ var makeGraaf=function(graaf){
 			.attr("cy",function(d){return Math.max(rand,Math.min(h-rand,d.y));});
 	}	
 	
-	function zoom() {
+	function zoom() {//doesn't work
 	  veld.attr("transform","translate("+d3.event.translate+")"+" scale("+d3.event.scale+")");
 	}	
 	
@@ -169,17 +181,17 @@ var makeGraaf=function(graaf){
 	}
 }
 
-var longestContig=function(graaf){
+function longestContig(graaf){
 	var waarde=0;
 	for (i in graaf.nodes){
-		if (graaf.nodes[i]["length"]>waarde){
-			waarde=graaf.nodes[i]["length"]
+		if (parseInt(graaf.nodes[i]["length"])>waarde){
+			waarde=parseInt(graaf.nodes[i]["length"])
 		}
 	};
 	return waarde
 };
 
-var exporteer=function (graaf){//lees data object, schrijf naar .dot file.
+function exporteer(graaf){//lees data object, schrijf naar .dot file.
 	var dotbestand="digraph:{\n"
 	for (regel in graaf.nodes){dotbestand.push(regel.id+" [comment=\""+regel.sequence+"\",group=\""+regel.group+"\"]\n")}
 	for (regel in graaf.links){dotbestand.push(regel.source+" -> "+regel.target+"[comment=\"sStart=\""+regel.sStart+"\",sEnd=\""+regel.sEnd+"\",tStart=\""+regel.tStart+"\",tEnd=\""+regel.tEnd+"\",revcomp=\""+regel.revcomp+"\"]\n")}
