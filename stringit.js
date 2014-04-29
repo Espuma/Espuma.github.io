@@ -165,7 +165,7 @@ function makeGraaf(graaf){
 		//console.log(contignumber,graaf);
 		var maxLen=longestContig(graaf),
 			procent=(len*100)/maxLen;
-		if(len<100){return 0}
+		//if(len<100){return 0}//remove nodes that are too small for read mapping)
 		if(procent<=1){return 5}
 		else {return 0.4*procent+5}
 	}
