@@ -64,7 +64,7 @@
 
 
 window.addEventListener('load',function(){
-	var bestand=document.getElementById('bestan')
+	var bestand=document.getElementById('bestand')
 	bestand.addEventListener('change',doEverything,false)
 });
 
@@ -194,8 +194,20 @@ function makeGraaf(graaf){
 		.attr("preserveAspectRatio", "xMidYMid meet")
 		.append("svg:g")
 		.attr("id","veld")
-		//some zooming behaviour
-		
+	
+	var arrow = svg.append("svg:defs").selectAll("marker")
+		.data(["end"])      // Different link/path types can be defined here
+		.enter().append("svg:marker")    // This section adds in the arrows
+		.attr("id", String)
+		.attr("viewBox", "0 -5 10 10")
+		.attr("refX", 15)
+		.attr("refY", -1.5)
+		.attr("markerWidth", 6)
+		.attr("markerHeight", 6)
+		.attr("orient", "auto")
+		.append("svg:path")
+		.attr("d", "M0,-5L10,0L0,5");
+	
 	var force = d3.layout.force()
 		.nodes(graaf.nodes)
 		.links(graaf.links)
@@ -206,10 +218,10 @@ function makeGraaf(graaf){
 		.on("tick", tick)
 		.start();
 
-	var link = svg.selectAll(".link")
-		.attr("id","linksvg")
+	var path = svg.selectAll("path")
+		.attr("id","edges")
 		.data(graaf.links)
-		.enter().append("line")
+		.enter().append("path")
 		.attr("marker-end","url(#end)")//marker parameters need to be included
 		.attr("class", "link");
 
@@ -227,14 +239,26 @@ function makeGraaf(graaf){
 		.attr("fill", function(d) { return color(d.data.group)});
 									
 	function tick() {
-		link.attr("x1",function(d){return d.source.x;})
-			.attr("y1",function(d){return d.source.y;})
-			.attr("x2",function(d){return d.target.x;})
-			.attr("y2",function(d){return d.target.y;});
+	//	link.attr("x1",function(d){return d.source.x;})
+	//		.attr("y1",function(d){return d.source.y;})
+	//		.attr("x2",function(d){return d.target.x;})
+	//		.attr("y2",function(d){return d.target.y;});
 										  
 		node.attr("x",function(d){return Math.max(r,Math.min(w-r,d.x));})
 			.attr("y",function(d){return Math.max(r,Math.min(h-r,d.y));})
 			.attr("transform", function(d) { return "translate(" + d.x + "," + d.y + ")"});
+			
+		 path.attr("d", function(d) {
+				var dx = d.target.x - d.source.x,
+					dy = d.target.y - d.source.y,
+					dr = Math.sqrt(dx * dx + dy * dy);
+				return "M" + 
+					d.source.x + "," + 
+					d.source.y + "A" + 
+					dr + "," + dr + " 0 0,1 " + 
+					d.target.x + "," + 
+					d.target.y;
+			});
 	}		
 }
 
