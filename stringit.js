@@ -115,34 +115,28 @@ function Newblerparse(regels,filename){
 			var id=regels[i].split("\t")[0]
 			var contig=regels[i].split("\t")[1]
 			var lengte=regels[i].split("\t")[2]
-			if(lengte>maxLen){maxLen=lengte}
-			graaf.nodes.push({"id":id,"sequence":contig,"length":lengte,"proportions": [{"value":id,"group":readRatio(contig)[0],"waarde":readRatio(contig)[1]},{"value":id,"group":readRatio(contig)[2],"waarde":readRatio(contig)[3]}]})
+			if(parseInt(lengte)>maxLen){maxLen=parseInt(lengte)}
+			graaf.nodes.push({"id":id,"sequence":contig,"lengte":lengte,"proportions": [{"value":id,"group":readRatio(contig)[0],"waarde":readRatio(contig)[1]},{"value":id,"group":readRatio(contig)[2],"waarde":readRatio(contig)[3]}]})
 						
 		}//end node loop
 		if(regels[i].split("\t")[0]==="C"){//collect edges
 			s=regels[i].split("\t")[1]
 			t=regels[i].split("\t")[3]
-			if(regels[i].split("\t")[2]==regels[i].split("\t")[4])
-				{rc=1}
-			else{
+			if(regels[i].split("\t")[2]==regels[i].split("\t")[4]){
+				rc=1
+			}else{
 				rc=0
 				if(regels[i].split("\t")[2].slice(0,1)==5){//reverse source and target to follow read direction
 					s=regels[i].split("\t")[3];
 					t=regels[i].split("\t")[1];
 				}
 			}
-			graaf.edges[graaf.edges.length]={"source":graaf.nodes[vindNode(s)],"target":graaf.nodes[vindNode(t)],"sLen":0,"tLen":0,"revcomp":rc}
+			graaf.edges[graaf.edges.length]={"source":graaf.nodes[vindNode(s)],"target":graaf.nodes[vindNode(t)],"sLen":graaf.nodes[vindNode(s)].lengte,"tLen":graaf.nodes[vindNode(t)].lengte,"revcomp":rc}
+			//make source and target only reference the ID, without copying all the data from the whole note in this slot. It must do so without breaking the data part for the pie charts.
 if(!(s in graaf.usedNodes)){graaf.usedNodes.push({"id":s})};
 			if(!(t in graaf.usedNodes)){graaf.usedNodes.push({"id":t})};
 		}//end edge loop
 	}//end regel loop
-
-for (i in graaf.nodes){
-	if (parseInt(graaf.nodes[i]["length"])>maxLen){
-		maxLen=parseInt(graaf.nodes[i]["length"])
-	}
-}	
-
 	return graaf
 }
 
@@ -152,9 +146,9 @@ function kleurGroep(id){
 }	
 
 function vindNode(id) {
-	for (var i in graaf["nodes"]) {
-		if (graaf["nodes"][i]["id"] === id) {
-			return graaf["nodes"][i]//moet eigenlijk i returnen, maar dat maakt die piechart heel lastig
+	for (var i in graaf.nodes) {
+		if (graaf.nodes[i]["id"] === id) {
+			return i//moet eigenlijk i returnen, maar dat maakt die piechart heel lastig
 		}
 	};
 }
@@ -167,7 +161,8 @@ function readRatio(contigname){//load from (second) external file, not from inte
 }
 
 function radius(len){
-	if((len*100)/maxLen<=1){return 4}
+	var procent=(len*100)/maxLen
+	if(procent<=1){return 4}
 	else {return 0.4*procent+5}
 }
 
@@ -175,18 +170,17 @@ function makeGraaf(graaf){
 	var w=800,
 		h=800,
 		r=30	
-		
 	
 	var svg = d3.select("body").append("svg")
 		.attr("id", "graafsvg")
 		.attr({"height":"90%"})
-		.attr("viewBox", "0 0 "+w+" "+h)
 		.attr("preserveAspectRatio", "xMidYMid meet")
+		.attr("viewBox", "0 0 "+w+" "+h)
 		.append("g")
 		.attr("id","veld")
 	
 	var arrow = svg.append("defs").selectAll("marker")
-		.data(["end"])
+		.data(["pijl"])
 		.enter().append("marker")
 		.attr("id", String)
 		.attr("viewBox", "0 -5 10 10")
@@ -212,7 +206,7 @@ function makeGraaf(graaf){
 		.attr("id","edges")
 		.data(graaf.edges)
 		.enter().append("path")
-		.attr("marker-end","url(#end)")
+		.attr("marker-end","url(#pijl)")
 		.attr("class", "link");
 
 	var node = svg.selectAll(".node")
@@ -226,7 +220,7 @@ function makeGraaf(graaf){
 		.sort(null);
 
     var arc = d3.svg.arc()
-		.outerRadius(function(d){return radius(graaf.nodes[(parseInt(d.data.value)-1).toString()].length)})
+		.outerRadius(function(d){return radius(graaf.nodes[(parseInt(d.data.value)-1)].lengte)})
 	
 	var color = d3.scale.category10();
 	
