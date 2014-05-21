@@ -209,7 +209,7 @@ function makeGraaf(graaf){
 	var link = svg.selectAll(".link")
 		.attr("id","linksvg")
 		.data(graaf.links)
-		.enter().append("path")
+		.enter().append("line")
 		.attr("marker-end","url(#end)")//marker parameters need to be included
 		.attr("class", "link");
 
