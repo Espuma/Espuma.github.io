@@ -1,7 +1,12 @@
+//links object info needs working, to incorporate directionality, correctly calculated from different input files
+//graaf.usedNodes is not working correctly currently, everything gets put in exactly twice
+//color grouping does not work for all groups, and is overfitted/not generalized
+//make doEverything bigger to include other ways of triggering events, using that to update the graaf?
+//the work on zooming is once again reset at zero
 	var groepen=[];
-	var graaf={"nodes":[],"edges":[],"usedNodes":[]} //{"nodes":[{}],"edges":[{},{},{}]}
+	var graaf={"nodes":[],"links":[],"usedNodes":[]} //{"nodes":[{}],"links":[{},{},{}]}
 	var newblerACE={//[readsfromsample1,readfromsample2,totalcontigsize]
-"1":[23628,0,423460],//second value was 3
+"1":[23628,3,423460],
 "2":[16743,4,303982],"3":[15465,10,279068],"4":[6,13782,250157],"5":[12408,19,229142],"6":[11927,10,215321],
 "7":[29,11385,204610],"8":[4,10726,194325],"9":[12,10322,186071],"10":[9,9160,167624],"11":[2,7771,142557],
 "12":[7406,4,135878],"13":[8,7523,135651],"14":[7424,6,135513],"15":[7443,7,134855],"16":[3,7169,129630],
@@ -53,7 +58,7 @@
 "242":[0,63,187],"243":[184,292,215],"244":[0,200,196],"245":[197,0,193],"246":[0,394,196],
 "247":[0,72,165],"248":[234,498,198],"249":[72,131,166],"250":[0,229,152],"251":[0,364,153],
 "252":[79,0,137],"253":[0,343,154],"254":[0,90,125],"255":[0,36,114],"256":[0,469,143],
-"257":[0,47,114],"258":[0,113,109],"259":[0,60,104]
+"257":[0,47,114],"258":[0,113,109],"259":[0,60,104]//waarom zijn er maar 259 nodes met informatie, als er 295 zijn? de rest is te klein, dus daar mapt niets op
 }
 	
 
@@ -63,9 +68,12 @@ window.addEventListener('load',function(){
 	bestand.addEventListener('change',doEverything,false)
 });
 
+//functions
 function doEverything(event){
 loadFile(event,parseFileInput);
-//The calling of makeGraaf in loadFile needs to be moved to here.
+/*this doesn't really do anything right now, 
+but eventually needs to control the whole building of the graaf. 
+The calling of makeGraaf in loadFile needs to be moved to here.*/
 }
 
 function loadFile(ev1,callback){ //load file, return contents
@@ -73,7 +81,7 @@ function loadFile(ev1,callback){ //load file, return contents
 	var reader=new FileReader();
 	reader.onload=function(){
 		var fileContent=event.target.result;
-		callback(fileContent,loaded.name,makeGraaf)};//parseFileInput gets called here
+		callback(fileContent,loaded.name,makeGraaf)};//parseFileInput
 	reader.readAsText(loaded)
 }//end loadFile
 
@@ -84,7 +92,7 @@ if(filename.search("454")>-1){var graaf=Newblerparse(regels,filename)}
 callback(graaf)
 }
 
-function ASQGparse(regels){//drop ASQG/SGA support?
+function ASQGparse(regels){
 	for(i=0;i<regels.length;i++){//asqg parsing
 		if (regels[i].split("\t")[0]==="VT"){//collect nodes
 			var id=regels[i].split("\t")[1]
@@ -92,7 +100,7 @@ function ASQGparse(regels){//drop ASQG/SGA support?
 			graaf.nodes[graaf.nodes.length]={"id":id,"sequence":seq,"length":seq.length,"proportions":[{"group": 1, "value":1},{"group":2, "value":0}]}
 		}//end node loop
 
-		if(regels[i].split("\t")[0]==="ED"){//collect edges and overlap information
+		if(regels[i].split("\t")[0]==="ED"){//collect links and overlap information
 			var info=regels[i].split("\t")[1],
 				s=info.split(" ")[0],
 				t=info.split(" ")[1],
@@ -101,7 +109,7 @@ function ASQGparse(regels){//drop ASQG/SGA support?
 				tos=parseInt(info.split(" ")[5]),
 				tol=parseInt(info.split(" ")[6]),
 				revcomp=parseInt(info.split(" ")[8]);
-			graaf.edges[graaf.edges.length]={"source":vindNode(s),"target":vindNode(t),"sStart":sos,"sEnd":sol,"tStart":tos,"tEnd":tol,"revcomp":revcomp}//if revcomp=1, reverse one of the seqs to match them
+			graaf.links[graaf.links.length]={"source":vindNode(s),"target":vindNode(t),"sStart":sos,"sEnd":sol,"tStart":tos,"tEnd":tol,"revcomp":revcomp}//if revcomp=1, reverse one of the seqs to match them
 			if(!(s in graaf.usedNodes)){graaf.usedNodes.push({"id":s})};
 			if(!(t in graaf.usedNodes)){graaf.usedNodes.push({"id":t})};
 		}//end link loop
@@ -114,22 +122,15 @@ function Newblerparse(regels,filename){
 		if(!isNaN(parseInt(regels[i].split("\t")[0]))){//collect nodes
 			var id=regels[i].split("\t")[0]
 			var contig=regels[i].split("\t")[1]
-			var lengte=parseInt(regels[i].split("\t")[2])
-			graaf.nodes.push({"id":id,"sequence":contig,"lengte":lengte,"proportions": [{"value":id,"group":readRatio(contig)[0],"waarde":readRatio(contig)[1]},{"value":id,"group":readRatio(contig)[2],"waarde":readRatio(contig)[3]}]})
+			var lengte=regels[i].split("\t")[2]
+			graaf.nodes.push({"id":id,"sequence":contig,"length":lengte,"proportions": [{"value":id,"group":readRatio(contig)[0],"waarde":readRatio(contig)[1]},{"value":id,"group":readRatio(contig)[2],"waarde":readRatio(contig)[3]}]})
 		}//end node loop
-		if(regels[i].split("\t")[0]==="C"){//collect edges
+		if(regels[i].split("\t")[0]==="C"){//collect links
 			s=regels[i].split("\t")[1]
 			t=regels[i].split("\t")[3]
-			if(regels[i].split("\t")[2]==regels[i].split("\t")[4])
-				{rc=1}
-			else{
-				rc=0
-				if(regels[i].split("\t")[2].slice(0,1)==5){//reverse source and target to follow read direction
-					s=regels[i].split("\t")[3];
-					t=regels[i].split("\t")[1];
-				}
-			}
-			graaf.edges[graaf.edges.length]={"source":graaf.nodes[vindNode(s)],"target":graaf.nodes[vindNode(t)],"sLen":graaf.nodes[vindNode(s)].lengte,"tLen":graaf.nodes[vindNode(t)].lengte,"revcomp":rc}
+			rc=0//deze en regel eronder geven aan of source en target reverse complementair of 'normaal' aan elkaar te verbinden zijn.
+			if (regels[i].split("\t")[2].slice(0,1)==regels[i].split("\t")[4].slice(0,1)){rc=1}
+			graaf.links[graaf.links.length]={"source":vindNode(s),"target":vindNode(t),"sStart":"","sEnd":"","tStart":"","tEnd":"","revcomp":rc}
 			if(!(s in graaf.usedNodes)){graaf.usedNodes.push({"id":s})};
 			if(!(t in graaf.usedNodes)){graaf.usedNodes.push({"id":t})};
 		}//end link loop
@@ -145,47 +146,84 @@ function kleurGroep(id){
 function vindNode(id) {
 	for (var i in graaf["nodes"]) {
 		if (graaf["nodes"][i]["id"] === id) {
-			return i
+			return graaf["nodes"][i]
 		}
 	};
 }
 
-function radius(len){
-	var maxLen=longestContig(graaf),
-		procent=(len*100)/maxLen;
-	if(procent<=1){return 4}
-	else {return 0.4*procent+5}
-}
-	
 function readRatio(contigname){//load from (second) external file, not from internal var
 			//still needs to made extensible for more than 2 organisms. Use user input data for this choice.
-	if(typeof newblerACE[parseInt(contigname.slice(-4)).toString()]!='undefined'){
+	if(typeof newblerACE[parseInt(contigname.slice(-4)).toString()]!='undefined'){//used to fill groups with read ratio values, and to filter out contigs with no read mappings
 		return [1,newblerACE[parseInt(contigname.slice(-4)).toString()][0],2,newblerACE[parseInt(contigname.slice(-4)).toString()][1]]//[group1,value1,group2,value2]
-	}else{ return [3,1,3,1]}
+	}else{ return [3,1,3,1]}//ideally this produces a whole node with a different color (with equal values for each of the same-colored parts)
 }
 function makeGraaf(graaf){
-	var w=500,//need to make dynamic to fit different screens
-		h=500,
+	var w=800,
+		h=800,
 		r=30
 		
+	function radius(len){//I don't make the rules, I only write them down. Why does d.value reference the contig number? I don't know, but I can work with it
+		//console.log(contignumber,graaf);
+		var maxLen=longestContig(graaf),
+			procent=(len*100)/maxLen;
+		//if(len<100){return 0}//remove nodes that are too small for read mapping)
+		if(procent<=1){return 5}
+		else {return 0.4*procent+5}
+	}
+	var color = d3.scale.category10();
+	
+		var x = d3.scale.linear()
+		.domain([0, w])
+		.range([0, w]);
+
+	var y = d3.scale.linear()
+		.domain([0, h])
+		.range([h, 0]);
+	
+	var pie = d3.layout.pie()
+		.value(function(d){return d.waarde})
+		.sort(null);
+
+    var arc = d3.svg.arc()
+		.outerRadius(function(d){return radius(graaf.nodes[(parseInt(d.data.value)-1).toString()].length)})
+	
 	var svg = d3.select("body").append("svg")
-		.attr("id", "tekenveld")
-		.attr({"height":"90%"})//to account for top frame
-		//.attr({"width":"70%"})//(later) to account for side frame
-		.attr("preserveAspectRatio", "xMidYMid meet")
+		.attr("id", "graafsvg")
+		.attr({"height":"90%"})
 		.attr("viewBox", "0 0 "+w+" "+h)
-		.append("g")
-		.attr("id","graafgegevens")
+		.attr("preserveAspectRatio", "xMidYMid meet")
+		.append("svg:g")
+		.attr("id","veld")
+	
+	var arrow = svg.append("svg:defs").selectAll("marker")
+		.data(["end"])      // Different link/path types can be defined here
+		.enter().append("svg:marker")    // This section adds in the arrows
+		.attr("id", String)
+		.attr("viewBox", "0 -5 10 10")
+		.attr("refX", 15)
+		.attr("refY", -1.5)
+		.attr("markerWidth", 6)
+		.attr("markerHeight", 6)
+		.attr("orient", "auto")
+		.append("svg:path")
+		.attr("d", "M0,-5L10,0L0,5");
 	
 	var force = d3.layout.force()
 		.nodes(graaf.nodes)
-		.links(graaf.edges)
+		.links(graaf.links)
 		.size([w, h])
 		.charge(-30)
-		.linkDistance(1)
+		.linkDistance(15)
 		.linkStrength(1)
 		.on("tick", tick)
 		.start();
+
+	var path = svg.selectAll("path")
+		.attr("id","edges")
+		.data(graaf.links)
+		.enter().append("path")
+		.attr("marker-end","url(#end)")//marker parameters need to be included
+		.attr("class", "link");
 
 	var node = svg.selectAll(".node")
 		.data(graaf.nodes)
@@ -193,38 +231,10 @@ function makeGraaf(graaf){
 		.attr("class", "node")
 		.call(force.drag);
 
-	var arrow = svg.append("defs").selectAll("marker")
-		.data(["pijl"])
-		.enter().append("marker")
-		.attr("id", String)
-		.attr("viewBox", "0 -5 10 10")
-		.attr("refX", 30)//function(d){return radius(d.tLen)+1)
-		.attr("refY",-1.2)
-		.attr("orient","auto")
-		.append("path")
-		.attr("d", "M0,-5L10,0L0,5 Z");
-		//.attr(iets met kleur)
-		
-	var path = svg.selectAll("path")
-		.attr("id","edges")
-		.data(graaf.edges)
-		.enter().append("path")
-		.attr("marker-end","url(#pijl)")//I need node information to make the arrows match. need to rebuild link information with that data
-		.attr("class", "link");
-
-	var pie = d3.layout.pie()
-		.value(function(d){return d.waarde})
-		.sort(null);
-		
-    var arc = d3.svg.arc()
-		.outerRadius(function(d){console.log(d);return radius(graaf.nodes[(parseInt(d.value)-1).toString()].lengte)})
-		
-	var color = d3.scale.category10();
-	
 	node.selectAll("path")
 		.data(function(d) {return pie(d.proportions)})
 		.enter()
-		.append("path")
+		.append("svg:path")
 		.attr("d",arc)
 		.attr("fill", function(d) { return color(d.data.group)});
 									
@@ -244,12 +254,73 @@ function makeGraaf(graaf){
 					dr = Math.sqrt(dx * dx + dy * dy);
 				return "M" + 
 					d.source.x + "," + 
-					d.source.y + "L" + //change to L and correct coordinates to remove elliptical arc
-					//dr + "," + dr + " 0 0,1 " + 
+					d.source.y + "A" + 
+					dr + "," + dr + " 0 0,1 " + 
 					d.target.x + "," + 
 					d.target.y;
 			});
 	}		
+}
+
+function pieGraaf(graaf){//deze werkt wel, maar zowel het verslepen als de bounding box zijn weg. Maar dat is iets voor morgen!
+	var w=700,
+		h=700,
+		radius=8/*function(d){//functie herschrijven om via arc alsnog te werken
+		var maxLen=longestContig(graaf),
+			procent=(d.length*100)/maxLen;
+		if(procent<=1){return 5}
+		else {return 0.2*procent+5}
+	}//*/
+	var color = d3.scale.category10();
+
+    var pie = d3.layout.pie()
+        .value(function(d){return d.value})
+		.sort(null);
+
+    var arc = d3.svg.arc()
+        .outerRadius(radius)
+
+	var svg = d3.select("body").append("svg")
+		.attr("width", w)
+        .attr("height", h);
+		
+	var force = d3.layout.force()
+		.nodes(graaf.nodes)
+		.links(graaf.links)
+		.size([w, h])
+		.charge(-30)
+		.linkDistance(15)
+		.linkStrength(1)
+		.on("tick", tick)
+		.start();
+
+    var link = svg.selectAll(".link")
+        .data(graaf.links)
+        .enter().append("line")
+        .attr("class", "link");
+
+    var node = svg.selectAll(".node")
+        .data(graaf.nodes)
+        .enter().append("g")
+        .attr("class", "node");
+
+    node.selectAll("path")
+        .data(function(d) {return pie(d.proportions)})
+        .enter()
+        .append("svg:path")
+        .attr("d", arc)
+        .attr("fill", function(d) { return color(d.data.group)});
+
+	function tick() {
+		link.attr("x1",function(d){return d.source.x;})
+			.attr("y1",function(d){return d.source.y;})
+			.attr("x2",function(d){return d.target.x;})
+			.attr("y2",function(d){return d.target.y;});
+										  
+		node.attr("x", function(d) { return d.x; })
+            .attr("y", function(d) { return d.y; })
+            .attr("transform", function(d) { return "translate(" + d.x + "," + d.y + ")"});
+	}
 }
 
 function longestContig(graaf){
@@ -265,6 +336,6 @@ function longestContig(graaf){
 function exporteer(graaf){//lees data object, schrijf naar .dot file.
 	var dotbestand="digraph:{\n"
 	for (regel in graaf.nodes){dotbestand.push(regel.id+" [comment=\""+regel.sequence+"\",group=\""+regel.group+"\"]\n")}
-	for (regel in graaf.edges){dotbestand.push(regel.source+" -> "+regel.target+"[comment=\"sStart=\""+regel.sStart+"\",sEnd=\""+regel.sEnd+"\",tStart=\""+regel.tStart+"\",tEnd=\""+regel.tEnd+"\",revcomp=\""+regel.revcomp+"\"]\n")}
+	for (regel in graaf.links){dotbestand.push(regel.source+" -> "+regel.target+"[comment=\"sStart=\""+regel.sStart+"\",sEnd=\""+regel.sEnd+"\",tStart=\""+regel.tStart+"\",tEnd=\""+regel.tEnd+"\",revcomp=\""+regel.revcomp+"\"]\n")}
 	dotbestand+="}"
 }
