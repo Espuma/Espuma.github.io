@@ -60,6 +60,7 @@ var newblerACE={//[readsfromsample1,readfromsample2,totalcontigsize]
 window.addEventListener('load',function(){
 	var bestand=document.getElementById('bestand')
 	bestand.addEventListener('change',doEverything,false)
+	//only doEverything once both files (graph&read map) are selected
 });
 
 function doEverything(event){
@@ -82,32 +83,6 @@ if(filename.split(".")[1]==="asqg"){var graaf= ASQGparse(regels)}
 if(filename.search("454")>-1){var graaf=Newblerparse(regels,filename)}
 callback(graaf)
 }
-
-function ASQGparse(regels){//drop support?
-	for(i=0;i<regels.length;i++){//asqg parsing
-		if (regels[i].split("\t")[0]==="VT"){//collect nodes
-			var id=regels[i].split("\t")[1]
-			var seq=regels[i].split("\t")[2]
-			graaf.nodes[graaf.nodes.length]={"id":id,"sequence":seq,"lengte":seq.length,"proportions":[{"group": 1, "value":1},{"group":2, "value":0}]}
-		}//end node loop
-
-		if(regels[i].split("\t")[0]==="ED"){//collect edges and overlap information
-			var info=regels[i].split("\t")[1],
-				s=info.split(" ")[0],
-				t=info.split(" ")[1],
-				sos=parseInt(info.split(" ")[2]),
-				sol=parseInt(info.split(" ")[3]),
-				tos=parseInt(info.split(" ")[5]),
-				tol=parseInt(info.split(" ")[6]),
-				revcomp=parseInt(info.split(" ")[8]);
-			graaf.edges[graaf.edges.length]={"source":vindNode(s),"target":vindNode(t),"sStart":sos,"sEnd":sol,"tStart":tos,"tEnd":tol,"revcomp":revcomp}//if revcomp=1, reverse one of the seqs to match them
-			if(!(s in graaf.usedNodes)){graaf.usedNodes.push({"id":s})};
-			if(!(t in graaf.usedNodes)){graaf.usedNodes.push({"id":t})};
-		}//end edge loop
-	}//end regel loop
-	return graaf
-}//end ASQGparse function
-
 
 function Newblerparse(regels,filename){
 	for (i=0;i<regels.length;i++){
@@ -179,19 +154,6 @@ function makeGraaf(graaf){
 		.append("g")
 		.attr("id","veld")
 	
-	var arrow = svg.append("defs").selectAll("marker")
-		.data(["pijl"])
-		.enter().append("marker")
-		.attr("id", String)
-		.attr("viewBox", "0 -5 10 10")
-		.attr("refX", 15)
-		.attr("refY", -1.5)
-		.attr("markerWidth", 6)
-		.attr("markerHeight", 6)
-		.attr("orient", "auto")
-		.append("path")
-		.attr("d", "M0,-5L10,0L0,5");
-	
 	var force = d3.layout.force()
 		.nodes(graaf.nodes)
 		.links(graaf.edges)
@@ -206,7 +168,6 @@ function makeGraaf(graaf){
 		.attr("id","edges")
 		.data(graaf.edges)
 		.enter().append("path")
-		.attr("marker-end","url(#pijl)")
 		.attr("class", "link");
 
 	var node = svg.selectAll(".node")
@@ -232,26 +193,11 @@ function makeGraaf(graaf){
 		.attr("fill", function(d) { return color(d.data.group)});
 									
 	function tick() {
-	//	link.attr("x1",function(d){return d.source.x;})
-	//		.attr("y1",function(d){return d.source.y;})
-	//		.attr("x2",function(d){return d.target.x;})
-	//		.attr("y2",function(d){return d.target.y;});
-										  
 		node.attr("x",function(d){return Math.max(r,Math.min(w-r,d.x));})
 			.attr("y",function(d){return Math.max(r,Math.min(h-r,d.y));})
 			.attr("transform", function(d) { return "translate(" + d.x + "," + d.y + ")"});
 			
-		 path.attr("d", function(d) {
-				var dx = d.target.x - d.source.x,
-					dy = d.target.y - d.source.y,
-					dr = Math.sqrt(dx * dx + dy * dy);
-				return "M" + 
-					d.source.x + "," + 
-					d.source.y + "L" + 
-					//dr + "," + dr + " 0 0,1 " + 
-					d.target.x + "," + 
-					d.target.y;
-			});
+		path.attr("d", function(d) {return "M"+d.source.x +","+d.source.y+"L"+d.target.x+","+d.target.y});
 	}		
 }
 
