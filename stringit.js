@@ -56,8 +56,8 @@ var newblerACE={//[readsfromsample1,readfromsample2,totalcontigsize]
 var groepen=[],
 	graaf={"nodes":[],"edges":[],"usedNodes":[]}, //{"nodes":[{}],"edges":[{},{},{}]}
 	maxLen=0,
-	w=600,
-	h=600,
+	w=1000,
+	h=1000,
 	r=30,
     totalGroups=2//needs to become function to determine dynamically
 
@@ -88,12 +88,7 @@ if(filename.search("454")>-1){var graaf=Newblerparse(regels,filename)}
 callback(graaf)
 }
 
-function coordinates(groepnummer){
-	var cx=0.25*w*Math.sin((groepnummer*2*Math.PI)/totalGroups)
-	var cy=0.25*h*Math.cos((groepnummer*2*Math.PI)/totalGroups)
-	if(groepnummer==0){var cx=w/2;var cy=h/2}//determine group from neighbour?
-	return [cx,cy]
-}
+
 
 function Newblerparse(regels,filename){
 	for (i=0;i<regels.length;i++){
@@ -157,11 +152,18 @@ function radius(len){
 }
 
 function gravity(alpha) {
-	var a=0.05*alpha
+	var a=0.1*alpha
 	return function(d) {
 		d.x+=(coordinates(d.groep)[0]-d.x)*a;
 		d.y+=(coordinates(d.groep)[1]-d.y)*a;
   }
+}
+
+function coordinates(groepnummer){
+	var cx=0.5*w+0.4*w*Math.sin((groepnummer*2*Math.PI)/totalGroups)
+	var cy=0.5*h+0.4*h*Math.cos((groepnummer*2*Math.PI)/totalGroups)
+	if(groepnummer==0){var cx=w/2;var cy=h/2}//determine group from neighbour?
+	return [cx,cy]
 }
 
 function makeGraaf(graaf){
@@ -180,7 +182,7 @@ function makeGraaf(graaf){
 		.size([w, h])
 		.charge(-30)
 		.gravity(0)
-		.linkDistance(15)
+		.linkDistance(25)
 		.linkStrength(1)
 		.on("tick", tick)
 		.start();
