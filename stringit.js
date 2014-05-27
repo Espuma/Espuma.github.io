@@ -152,17 +152,16 @@ function radius(len){
 }
 
 function gravity(alpha) {
-	var a=0.1*alpha
 	return function(d) {
+		if(d.lengte>1000){var a=0.1*alpha}else{var a=0}//can install a variable gravity-pull-threshold here
 		d.x+=(coordinates(d.groep)[0]-d.x)*a;
 		d.y+=(coordinates(d.groep)[1]-d.y)*a;
   }
 }
 
 function coordinates(groepnummer){
-	var cx=0.5*w+0.4*w*Math.sin((groepnummer*2*Math.PI)/totalGroups)
-	var cy=0.5*h+0.4*h*Math.cos((groepnummer*2*Math.PI)/totalGroups)
-	if(groepnummer==0){var cx=w/2;var cy=h/2}//determine group from neighbour?
+	var cx=0.5*w+0.3*w*Math.sin((groepnummer*2*Math.PI)/totalGroups)
+	var cy=0.5*h+0.3*h*Math.cos((groepnummer*2*Math.PI)/totalGroups)
 	return [cx,cy]
 }
 
