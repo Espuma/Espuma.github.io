@@ -1,6 +1,3 @@
-var groepen=[];
-var graaf={"nodes":[],"edges":[],"usedNodes":[]} //{"nodes":[{}],"edges":[{},{},{}]}
-var maxLen=0
 var newblerACE={//[readsfromsample1,readfromsample2,totalcontigsize]
 "1":[23628,3,423460],
 "2":[16743,4,303982],"3":[15465,10,279068],"4":[6,13782,250157],"5":[12408,19,229142],"6":[11927,10,215321],
@@ -56,6 +53,13 @@ var newblerACE={//[readsfromsample1,readfromsample2,totalcontigsize]
 "252":[79,0,137],"253":[0,343,154],"254":[0,90,125],"255":[0,36,114],"256":[0,469,143],
 "257":[0,47,114],"258":[0,113,109],"259":[0,60,104]
 }
+var groepen=[],
+	graaf={"nodes":[],"edges":[],"usedNodes":[]}, //{"nodes":[{}],"edges":[{},{},{}]}
+	maxLen=0,
+	w=600,
+	h=600,
+	r=30,
+    totalGroups=2//needs to become function to determine dynamically
 
 window.addEventListener('load',function(){
 	var bestand=document.getElementById('bestand')
@@ -79,19 +83,26 @@ function loadFile(ev1,callback){ //load file, return contents
 
 function parseFileInput(content,filename,callback){
 regels=content.split("\n")
-if(filename.split(".")[1]==="asqg"){var graaf= ASQGparse(regels)}
 if(filename.search("454")>-1){var graaf=Newblerparse(regels,filename)}
+//else error/exception
 callback(graaf)
+}
+
+function coordinates(groepnummer){
+	var cx=0.25*w*Math.sin((groepnummer*2*Math.PI)/totalGroups)
+	var cy=0.25*h*Math.cos((groepnummer*2*Math.PI)/totalGroups)
+	if(groepnummer==0){var cx=w/2;var cy=h/2}//determine group from neighbour?
+	return [cx,cy]
 }
 
 function Newblerparse(regels,filename){
 	for (i=0;i<regels.length;i++){
 		if(!isNaN(parseInt(regels[i].split("\t")[0]))){//collect nodes
-			var id=regels[i].split("\t")[0]
-			var contig=regels[i].split("\t")[1]
-			var lengte=regels[i].split("\t")[2]
+			var id=regels[i].split("\t")[0],
+				contig=regels[i].split("\t")[1],
+				lengte=regels[i].split("\t")[2]
 			if(parseInt(lengte)>maxLen){maxLen=parseInt(lengte)}
-			graaf.nodes.push({"id":id,"sequence":contig,"lengte":lengte,"proportions": [{"value":id,"group":readRatio(contig)[0],"waarde":readRatio(contig)[1]},{"value":id,"group":readRatio(contig)[2],"waarde":readRatio(contig)[3]}]})
+			graaf.nodes.push({"id":id,"sequence":contig,"lengte":lengte,"groep":readRatio(contig)[0],"proportions": [{"value":id,"group":readRatio(contig)[1],"waarde":readRatio(contig)[2]},{"value":id,"group":readRatio(contig)[3],"waarde":readRatio(contig)[4]}]})
 						
 		}//end node loop
 		if(regels[i].split("\t")[0]==="C"){//collect edges
@@ -131,8 +142,12 @@ function vindNode(id) {
 function readRatio(contigname){//load from (second) external file, not from internal var
 			//still needs to made extensible for more than 2 organisms. Use user input data for this choice.
 	if(typeof newblerACE[parseInt(contigname.slice(-4)).toString()]!='undefined'){//used to fill groups with read ratio values, and to filter out contigs with no read mappings
-		return [1,newblerACE[parseInt(contigname.slice(-4)).toString()][0],2,newblerACE[parseInt(contigname.slice(-4)).toString()][1]]//[group1,value1,group2,value2]
-	}else{ return [3,1,3,1]}//ideally this produces a whole node with a different color (with equal values for each of the same-colored parts)
+		
+		var reads=newblerACE[parseInt(contigname.slice(-4)).toString()],
+			ass=1+reads.indexOf(Math.max.apply(Math,reads.slice(0,totalGroups)))
+		var lijst=[ass,2,reads[0],3,reads[1]]//[assignedGroup,group1,value1,group2,value2]
+		return lijst
+	}else{ return [0,1,1,1,0]}
 }
 
 function radius(len){
@@ -141,15 +156,20 @@ function radius(len){
 	else {return 0.4*procent+5}
 }
 
+function gravity(alpha) {
+	var a=0.05*alpha
+	return function(d) {
+		d.x+=(coordinates(d.groep)[0]-d.x)*a;
+		d.y+=(coordinates(d.groep)[1]-d.y)*a;
+  }
+}
+
 function makeGraaf(graaf){
-	var w=800,
-		h=800,
-		r=30	
 	
 	var svg = d3.select("body").append("svg")
 		.attr("id", "graafsvg")
 		.attr({"height":"90%"})
-		.attr("preserveAspectRatio", "xMidYMid meet")
+		.attr("preserveAspectRatio", "xMidYMid meet")//bounding box doesn't work
 		.attr("viewBox", "0 0 "+w+" "+h)
 		.append("g")
 		.attr("id","veld")
@@ -159,15 +179,16 @@ function makeGraaf(graaf){
 		.links(graaf.edges)
 		.size([w, h])
 		.charge(-30)
+		.gravity(0)
 		.linkDistance(15)
 		.linkStrength(1)
 		.on("tick", tick)
 		.start();
 
-	var path = svg.selectAll("path")
+	var link = svg.selectAll(".link")
 		.attr("id","edges")
 		.data(graaf.edges)
-		.enter().append("path")
+		.enter().append("line")
 		.attr("class", "link");
 
 	var node = svg.selectAll(".node")
@@ -176,7 +197,7 @@ function makeGraaf(graaf){
 		.attr("class", "node")
 		.call(force.drag);
 
-	var pie = d3.layout.pie()
+		var pie = d3.layout.pie()
 		.value(function(d){return d.waarde})
 		.sort(null);
 
@@ -192,12 +213,17 @@ function makeGraaf(graaf){
 		.attr("d",arc)
 		.attr("fill", function(d) { return color(d.data.group)});
 									
-	function tick() {
-		node.attr("x",function(d){return Math.max(r,Math.min(w-r,d.x));})
+	function tick(e) {
+		node.each(gravity(e.alpha))
+		
+		node.attr("x",function(d){return Math.max(r,Math.min(w-r,d.x));})//bounding box doesn't work anymore
 			.attr("y",function(d){return Math.max(r,Math.min(h-r,d.y));})
 			.attr("transform", function(d) { return "translate(" + d.x + "," + d.y + ")"});
-			
-		path.attr("d", function(d) {return "M"+d.source.x +","+d.source.y+"L"+d.target.x+","+d.target.y});
+	
+		link.attr("x1", function(d) { return d.source.x; })
+			.attr("y1", function(d) { return d.source.y; })
+			.attr("x2", function(d) { return d.target.x; })
+			.attr("y2", function(d) { return d.target.y; });
 	}		
 }
 
