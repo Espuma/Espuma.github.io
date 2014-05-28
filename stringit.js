@@ -54,9 +54,9 @@ var newblerACE={//[readsfromsample1,readfromsample2,totalcontigsize]
 "257":[0,47,114],"258":[0,113,109],"259":[0,60,104]
 }
 var groepen=[],
-	graaf={"nodes":[],"edges":[],"usedNodes":[]}, //{"nodes":[{}],"edges":[{},{},{}]}
+	graaf={"nodes":[],"edges":[]}, //{"nodes":[{}],"edges":[{},{},{}]}
 	maxLen=0,
-	w=1000,
+	w=1000,//eventually needs to be variable to make the user fit all the data.
 	h=1000,
 	r=30,
     totalGroups=2//needs to become function to determine dynamically
@@ -82,40 +82,52 @@ function loadFile(ev1,callback){ //load file, return contents
 }//end loadFile
 
 function parseFileInput(content,filename,callback){
-regels=content.split("\n")
-if(filename.search("454")>-1){var graaf=Newblerparse(regels,filename)}
-//else error/exception
-callback(graaf)
+	regels=content.split("\n")
+	if(filename.search("454")>-1){var graaf=Newblerparse(regels,filename)}
+	if(filename.search("AMOS")>-1{var graaf=AMOSparse(regels,filename)}
+	//else error/exception
+	callback(graaf)
 }
 
-
-
+function AMOSparse(regels,filename){
+	for(i=0;i<regels.length;i++){
+		if regels[i].split("\t")[0]==="C"){//contigs
+			var eid=regels[i].split("\t")[1],
+				sequence=regels[i].split("\t")[2],
+				lengte=sequence.length;
+			if(parseInt(lengte)>maxLen){maxLen=parseInt(lengte)}
+			graaf.nodes.push({"id":id,"sequence":contig,"lengte":lengte,"groep":1,"proportions": [{"value":1,"group":1,"waarde":1},{"value":1,"group":1,"waarde":1}]})//obviously read mapping needs work
+		}
+		if(regels[i]split("\t")[0]==="E"){//edges
+			var adj=regels[i].split("\t")[5],
+				s=regels[i].split("\t")[3],
+				t=regels[i].split("\t")[4];
+			if(adj[0]=="B"){s=[t,t=s][0]}
+			if(adj[0]===adj[1]){rc=1}
+			graaf.edges.push({"source":graaf.nodes[vindNode(s)],"target":graaf.nodes[vindNode(t)],"sLen":graaf.nodes[vindNode(s)].lengte,"tLen":graaf.nodes[vindNode(t)].lengte,"revcomp":rc})
+		}
+	}
+	return graaf
+}			
+			
 function Newblerparse(regels,filename){
 	for (i=0;i<regels.length;i++){
 		if(!isNaN(parseInt(regels[i].split("\t")[0]))){//collect nodes
 			var id=regels[i].split("\t")[0],
 				contig=regels[i].split("\t")[1],
-				lengte=regels[i].split("\t")[2]
+				lengte=regels[i].split("\t")[2];
 			if(parseInt(lengte)>maxLen){maxLen=parseInt(lengte)}
 			graaf.nodes.push({"id":id,"sequence":contig,"lengte":lengte,"groep":readRatio(contig)[0],"proportions": [{"value":id,"group":readRatio(contig)[1],"waarde":readRatio(contig)[2]},{"value":id,"group":readRatio(contig)[3],"waarde":readRatio(contig)[4]}]})
 						
 		}//end node loop
 		if(regels[i].split("\t")[0]==="C"){//collect edges
-			s=regels[i].split("\t")[1]
-			t=regels[i].split("\t")[3]
-			if(regels[i].split("\t")[2]==regels[i].split("\t")[4]){
-				rc=1
-			}else{
-				rc=0
-				if(regels[i].split("\t")[2].slice(0,1)==5){//reverse source and target to follow read direction
-					s=regels[i].split("\t")[3];
-					t=regels[i].split("\t")[1];
-				}
-			}
-			graaf.edges[graaf.edges.length]={"source":graaf.nodes[vindNode(s)],"target":graaf.nodes[vindNode(t)],"sLen":graaf.nodes[vindNode(s)].lengte,"tLen":graaf.nodes[vindNode(t)].lengte,"revcomp":rc}
-			//make source and target only reference the ID, without copying all the data from the whole note in this slot. It must do so without breaking the data part for the pie charts.
-if(!(s in graaf.usedNodes)){graaf.usedNodes.push({"id":s})};
-			if(!(t in graaf.usedNodes)){graaf.usedNodes.push({"id":t})};
+			var adj=regels[i].split("\t")[2]+regels[i].split("\t")[4],
+				s=regels[i].split("\t")[1],
+				t=regels[i].split("\t")[3];
+			if(adj[0]=="B"){s=[t,t=s][0]}
+			if(adj[0]===adj[1]){rc=1}else{
+			graaf.edges.push({"source":graaf.nodes[vindNode(s)],"target":graaf.nodes[vindNode(t)],"sLen":graaf.nodes[vindNode(s)].lengte,"tLen":graaf.nodes[vindNode(t)].lengte,"revcomp":rc})
+			//make source and target only reference the ID, without copying all the data from the whole node in this slot. It must do so without breaking the data part for the pie charts.
 		}//end edge loop
 	}//end regel loop
 	return graaf
@@ -153,7 +165,7 @@ function radius(len){
 
 function gravity(alpha) {
 	return function(d) {
-		if(d.lengte>1000){var a=0.1*alpha}else{var a=0}//can install a variable gravity-pull-threshold here
+		if(d.lengte>101){var a=0.12*alpha}else{var a=0}//can install a variable gravity-pull-threshold here
 		d.x+=(coordinates(d.groep)[0]-d.x)*a;
 		d.y+=(coordinates(d.groep)[1]-d.y)*a;
   }
