@@ -84,26 +84,26 @@ function loadFile(ev1,callback){ //load file, return contents
 function parseFileInput(content,filename,callback){
 	regels=content.split("\n")
 	if(filename.search("454")>-1){var graaf=Newblerparse(regels,filename)}
-	if(filename.search("AMOS")>-1{var graaf=AMOSparse(regels,filename)}
+	if(filename.search("AMOS")>-1){var graaf=AMOSparse(regels,filename)}
 	//else error/exception
 	callback(graaf)
 }
 
 function AMOSparse(regels,filename){
 	for(i=0;i<regels.length;i++){
-		if regels[i].split("\t")[0]==="C"){//contigs
+		if(regels[i].split("\t")[0]==="C"){//contigs
 			var eid=regels[i].split("\t")[1],
 				sequence=regels[i].split("\t")[2],
 				lengte=sequence.length;
 			if(parseInt(lengte)>maxLen){maxLen=parseInt(lengte)}
 			graaf.nodes.push({"id":id,"sequence":contig,"lengte":lengte,"groep":1,"proportions": [{"value":1,"group":1,"waarde":1},{"value":1,"group":1,"waarde":1}]})//obviously read mapping needs work
 		}
-		if(regels[i]split("\t")[0]==="E"){//edges
+		if(regels[i].split("\t")[0]==="E"){//edges
 			var adj=regels[i].split("\t")[5],
 				s=regels[i].split("\t")[3],
 				t=regels[i].split("\t")[4];
 			if(adj[0]=="B"){s=[t,t=s][0]}
-			if(adj[0]===adj[1]){rc=1}
+			if(adj[0]===adj[1]){rc=1}else{rc=0}
 			graaf.edges.push({"source":graaf.nodes[vindNode(s)],"target":graaf.nodes[vindNode(t)],"sLen":graaf.nodes[vindNode(s)].lengte,"tLen":graaf.nodes[vindNode(t)].lengte,"revcomp":rc})
 		}
 	}
@@ -125,7 +125,7 @@ function Newblerparse(regels,filename){
 				s=regels[i].split("\t")[1],
 				t=regels[i].split("\t")[3];
 			if(adj[0]=="B"){s=[t,t=s][0]}
-			if(adj[0]===adj[1]){rc=1}else{
+			if(adj[0]===adj[1]){rc=1}else{rc=0}
 			graaf.edges.push({"source":graaf.nodes[vindNode(s)],"target":graaf.nodes[vindNode(t)],"sLen":graaf.nodes[vindNode(s)].lengte,"tLen":graaf.nodes[vindNode(t)].lengte,"revcomp":rc})
 			//make source and target only reference the ID, without copying all the data from the whole node in this slot. It must do so without breaking the data part for the pie charts.
 		}//end edge loop
