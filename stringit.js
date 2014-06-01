@@ -56,10 +56,10 @@ var newblerACE={//[readsfromsample1,readfromsample2,totalcontigsize]
 var groepen=[],
 	graaf={"nodes":[],"edges":[]}, //{"nodes":[{}],"edges":[{},{},{}]}
 	maxLen=0,
-	w=1000,//eventually needs to be variable to make the user fit all the data.
-	h=1000,
+	w=4000,//eventually needs to be variable to make the user fit all the data.
+	h=4000,
 	r=30,
-    totalGroups=2//needs to become function to determine dynamically
+    totalGroups=1//needs to become function to determine dynamically
 
 window.addEventListener('load',function(){
 	var bestand=document.getElementById('bestand')
@@ -93,10 +93,12 @@ function AMOSparse(regels,filename){
 	for(i=0;i<regels.length;i++){
 		if(regels[i].split("\t")[0]==="C"){//contigs
 			var eid=regels[i].split("\t")[1],
+				id=parseInt(eid.slice(6)).toString()
 				sequence=regels[i].split("\t")[2],
 				lengte=sequence.length;
+				contig=regels[i].split("\t")[2]
 			if(parseInt(lengte)>maxLen){maxLen=parseInt(lengte)}
-			graaf.nodes.push({"id":id,"sequence":contig,"lengte":lengte,"groep":1,"proportions": [{"value":1,"group":1,"waarde":1},{"value":1,"group":1,"waarde":1}]})//obviously read mapping needs work
+			graaf.nodes.push({"id":id,"name":eid,"sequence":contig,"lengte":lengte,"groep":1,"proportions": [{"value":1,"group":1,"waarde":1},{"value":1,"group":1,"waarde":1}]})//obviously read mapping needs work
 		}
 		if(regels[i].split("\t")[0]==="E"){//edges
 			var adj=regels[i].split("\t")[5],
@@ -108,7 +110,7 @@ function AMOSparse(regels,filename){
 		}
 	}
 	return graaf
-}			
+}			//nodes need to be analysed before edges. Also, current AMOS file is missing all but one edge...
 			
 function Newblerparse(regels,filename){
 	for (i=0;i<regels.length;i++){
@@ -141,7 +143,7 @@ function kleurGroep(id){
 function vindNode(id) {
 	for (var i in graaf.nodes) {
 		if (graaf.nodes[i]["id"] === id) {
-			return i//moet eigenlijk i returnen, maar dat maakt die piechart heel lastig
+			return i//moet eigenlijk id returnen, maar dat maakt die piechart heel lastig
 		}
 	};
 }
@@ -160,7 +162,7 @@ function readRatio(contigname){//load from (second) external file, not from inte
 function radius(len){
 	var procent=(len*100)/maxLen
 	if(procent<=1){return 4}
-	else {return 0.4*procent+5}
+	else {return 0.2*procent+5}
 }
 
 function gravity(alpha) {
@@ -174,7 +176,7 @@ function gravity(alpha) {
 function coordinates(groepnummer){
 	var cx=0.5*w+0.3*w*Math.sin((groepnummer*2*Math.PI)/totalGroups)
 	var cy=0.5*h+0.3*h*Math.cos((groepnummer*2*Math.PI)/totalGroups)
-	return [cx,cy]
+	return [0.5*w,0.5*h]
 }
 
 function makeGraaf(graaf){
