@@ -135,11 +135,6 @@ function Newblerparse(regels,filename){
 	return graaf
 }
 
-function kleurGroep(id){
-	if (!(id.substr(0,3) in groepen)){groepen.push(id.substr(0,3))}
-	return groepen.indexOf(id.substr(0,3))
-}	
-
 function vindNode(id) {
 	for (var i in graaf.nodes) {
 		if (graaf.nodes[i]["id"] === id) {
@@ -152,8 +147,10 @@ function readRatio(contigname){//load from (second) external file, not from inte
 			//still needs to made extensible for more than 2 organisms. Use user input data for this choice.
 	if(typeof newblerACE[parseInt(contigname.slice(-4)).toString()]!='undefined'){//used to fill groups with read ratio values, and to filter out contigs with no read mappings
 		
-		var reads=newblerACE[parseInt(contigname.slice(-4)).toString()],
-			ass=1+reads.indexOf(Math.max.apply(Math,reads.slice(0,totalGroups)))
+		var reads=newblerACE[parseInt(contigname.slice(-4)).toString()]
+		if(reads[0]>0.8*reads[1]){
+			var ass=1+reads.indexOf(Math.max.apply(Math,reads.slice(0,totalGroups)))
+		}else{ass=0}
 		var lijst=[ass,2,reads[0],3,reads[1]]//[assignedGroup,group1,value1,group2,value2]
 		return lijst
 	}else{ return [0,1,1,1,0]}
@@ -241,6 +238,9 @@ function makeGraaf(graaf){
 			.attr("y2", function(d) { return d.target.y; });
 	}		
 }
+
+function variatie(graaf){return 1}
+	
 
 
 function exporteer(graaf){//lees data object, schrijf naar .dot file.
