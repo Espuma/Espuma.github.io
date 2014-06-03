@@ -1,4 +1,5 @@
 var newblerACE={//[readsfromsample1,readfromsample2,totalcontigsize]
+//needs to be dynamic and account for variable amount of samples
 "1":[23628,3,423460],
 "2":[16743,4,303982],"3":[15465,10,279068],"4":[6,13782,250157],"5":[12408,19,229142],"6":[11927,10,215321],
 "7":[29,11385,204610],"8":[4,10726,194325],"9":[12,10322,186071],"10":[9,9160,167624],"11":[2,7771,142557],
@@ -56,11 +57,11 @@ var newblerACE={//[readsfromsample1,readfromsample2,totalcontigsize]
 var groepen=[],
 	graaf={"nodes":[],"edges":[]}, //{"nodes":[{}],"edges":[{},{},{}]}
 	maxLen=0,
-	w=4000,//eventually needs to be variable to make the user fit all the data.
-	h=4000,
+	w=900,//eventually needs to be variable to make the user fit all the data.
+	h=900,
 	r=30,
-    totalGroups=1//needs to become function to determine dynamically
-
+	totalGroups=newblerACE["1"].length-1
+    
 window.addEventListener('load',function(){
 	var bestand=document.getElementById('bestand')
 	bestand.addEventListener('change',doEverything,false)
@@ -145,10 +146,11 @@ function vindNode(id) {
 
 function readRatio(contigname){//load from (second) external file, not from internal var
 			//still needs to made extensible for more than 2 organisms. Use user input data for this choice.
+
 	if(typeof newblerACE[parseInt(contigname.slice(-4)).toString()]!='undefined'){//used to fill groups with read ratio values, and to filter out contigs with no read mappings
 		
 		var reads=newblerACE[parseInt(contigname.slice(-4)).toString()]
-		if(reads[0]>0.8*reads[1]){
+		if((reads[0]/reads[1]>3||reads[0]/reads[1]<0.333)&&reads[2]>99){
 			var ass=1+reads.indexOf(Math.max.apply(Math,reads.slice(0,totalGroups)))
 		}else{ass=0}
 		var lijst=[ass,2,reads[0],3,reads[1]]//[assignedGroup,group1,value1,group2,value2]
@@ -157,14 +159,14 @@ function readRatio(contigname){//load from (second) external file, not from inte
 }
 
 function radius(len){
-	var procent=(len*100)/maxLen
-	if(procent<=1){return 4}
-	else {return 0.2*procent+5}
+	procent=(len*100)/maxLen
+	procent<=1?waarde=4:waarde=0.2*procent+5
+	return waarde
 }
 
 function gravity(alpha) {
 	return function(d) {
-		if(d.lengte>101){var a=0.12*alpha}else{var a=0}//can install a variable gravity-pull-threshold here
+		d.lengte>101?a=0.12*alpha:a=0//can install a variable gravity-pull-threshold here
 		d.x+=(coordinates(d.groep)[0]-d.x)*a;
 		d.y+=(coordinates(d.groep)[1]-d.y)*a;
   }
@@ -173,7 +175,7 @@ function gravity(alpha) {
 function coordinates(groepnummer){
 	var cx=0.5*w+0.3*w*Math.sin((groepnummer*2*Math.PI)/totalGroups)
 	var cy=0.5*h+0.3*h*Math.cos((groepnummer*2*Math.PI)/totalGroups)
-	return [0.5*w,0.5*h]
+	return [cx,cy]
 }
 
 function makeGraaf(graaf){
@@ -209,7 +211,7 @@ function makeGraaf(graaf){
 		.attr("class", "node")
 		.call(force.drag);
 
-		var pie = d3.layout.pie()
+	var pie = d3.layout.pie()
 		.value(function(d){return d.waarde})
 		.sort(null);
 
@@ -232,16 +234,85 @@ function makeGraaf(graaf){
 			.attr("y",function(d){return Math.max(r,Math.min(h-r,d.y));})
 			.attr("transform", function(d) { return "translate(" + d.x + "," + d.y + ")"});
 	
-		link.attr("x1", function(d) { return d.source.x; })
-			.attr("y1", function(d) { return d.source.y; })
-			.attr("x2", function(d) { return d.target.x; })
-			.attr("y2", function(d) { return d.target.y; });
-	}		
+		link.attr("x1", function(d){return d.source.x})
+			.attr("y1", function(d){return d.source.y})
+			.attr("x2", function(d){return d.target.x})
+			.attr("y2", function(d){return d.target.y});
+	}
+	
+	variatie(graaf)
 }
 
-function variatie(graaf){return 1}
+function variatie2(graaf){
+	var nodevar={},
+		tussengem=0,
+		gemiddelde=" "
 	
+	for(i in graaf.edges){
+		sgroep=graaf.edges[i].source.groep
+		tgroep=graaf.edges[i].target.groep
+		if(sgroep!=0&&tgroep!=0){
+			if(typeof(nodevar[graaf.edges[i].source.sequence])!="undefined"){
+				otherGroup=-sgroep+3
+				tussengem=(100*graaf.edges[i].target.proportions
+				nodevar[graaf.edges[i].source.sequence]+=1
+				
+				
+				
+				}}}}
 
+function variatie(graaf){
+	var nodevar=[],
+		tussengem=0,
+		gemiddelde=" "
+	for(i in graaf.nodes){
+		var eigenVerh=0
+		switch(true){
+			case graaf.nodes[i].proportions[0].waarde==1:
+			default:
+				eigenVerh=0
+				break;
+			case graaf.nodes[i].proportions[0].waarde>graaf.nodes[i].proportions[1].waarde:
+				eigenVerh=1
+				break;
+			case graaf.nodes[i].proportions[1].waarde>graaf.nodes[i].proportions[0].waarde:
+				eigenVerh=2
+				break;
+			}
+		for(j in graaf.edges){
+			var sw0=graaf.edges[j].source.proportions[0].waarde,
+				sw1=graaf.edges[j].source.proportions[1].waarde,
+				tw0=graaf.edges[j].target.proportions[0].waarde,
+				tw1=graaf.edges[j].target.proportions[1].waarde
+			if(graaf.edges[j].source.id===graaf.nodes[i].id){
+				tussengem=(100*tw0)/(tw0+tw1)
+				if(eigenVerh===2){
+					gemiddelde==" "?gemiddelde=tussengem:gemiddelde=(tussengem+gemiddelde)/2
+				}else{
+					gemiddelde==" "?gemiddelde=100-tussengem:gemiddelde=((100-tussengem)+gemiddelde)/2
+				}	
+			} else 	if(graaf.edges[j].target.id===graaf.nodes[i].id){
+				tussengem=(100*sw0)/(sw0+sw1)
+				if(eigenVerh===2){
+					gemiddelde==" "?gemiddelde=tussengem:gemiddelde=(tussengem+gemiddelde)/2
+				}else{
+					gemiddelde==" "?gemiddelde=100-tussengem:gemiddelde=((100-tussengem)+gemiddelde)/2
+				}
+			}
+		}
+		nodevar.push([graaf.nodes[i].id,eigenVerh,gemiddelde])//[node.id,ownGroup,readsFromOtherGroup,readsFromOwnGroup]
+		gemiddelde=" "
+	}
+	//for(i in nodevar){console.log(nodevar[i])}
+	bars=[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+	for(i in nodevar){
+	nodevar[i][1]>0?bars[Math.round(nodevar[i][2]/5)]+=1:henk="henk"
+	}
+	console.log("\'bargraph van verdeling\': aantal nodes dat buren heeft van andere groep, van weinig naar veel buren")
+	console.log(bars)
+}
+	
+//+!!Math.round(eigenVerh[0]/eigenVerh[1])+1
 
 function exporteer(graaf){//lees data object, schrijf naar .dot file.
 	var dotbestand="digraph:{\n"
