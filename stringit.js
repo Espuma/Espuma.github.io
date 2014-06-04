@@ -57,10 +57,10 @@ var newblerACE={//[readsfromsample1,readfromsample2,totalcontigsize]
 var groepen=[],
 	graaf={"nodes":[],"edges":[]}, //{"nodes":[{}],"edges":[{},{},{}]}
 	maxLen=0,
-	w=900,//eventually needs to be variable to make the user fit all the data.
-	h=900,
+	w=4000,//eventually needs to be variable to make the user fit all the data.
+	h=4000,
 	r=30,
-	totalGroups=newblerACE["1"].length-1
+	totalGroups=1//newblerACE["1"].length-1
     
 window.addEventListener('load',function(){
 	var bestand=document.getElementById('bestand')
@@ -95,19 +95,25 @@ function AMOSparse(regels,filename){
 		if(regels[i].split("\t")[0]==="C"){//contigs
 			var eid=regels[i].split("\t")[1],
 				id=parseInt(eid.slice(6)).toString()
-				sequence=regels[i].split("\t")[2],
+				sequence=regels[i].split("\t")[3],
 				lengte=sequence.length;
-				contig=regels[i].split("\t")[2]
 			if(parseInt(lengte)>maxLen){maxLen=parseInt(lengte)}
-			graaf.nodes.push({"id":id,"name":eid,"sequence":contig,"lengte":lengte,"groep":1,"proportions": [{"value":1,"group":1,"waarde":1},{"value":1,"group":1,"waarde":1}]})//obviously read mapping needs work
+			graaf.nodes.push({"id":id,"name":eid,"sequence":sequence,"lengte":lengte,"groep":1,"proportions": [{"value":id,"group":1,"waarde":1},{"value":id,"group":1,"waarde":1}]})//obviously read mapping needs work
 		}
 		if(regels[i].split("\t")[0]==="E"){//edges
-			var adj=regels[i].split("\t")[5],
-				s=regels[i].split("\t")[3],
-				t=regels[i].split("\t")[4];
-			if(adj[0]=="B"){s=[t,t=s][0]}
-			if(adj[0]===adj[1]){rc=1}else{rc=0}
-			graaf.edges.push({"source":graaf.nodes[vindNode(s)],"target":graaf.nodes[vindNode(t)],"sLen":graaf.nodes[vindNode(s)].lengte,"tLen":graaf.nodes[vindNode(t)].lengte,"revcomp":rc})
+			var adj=regels[i].split("\t")[4],
+				s=regels[i].split("\t")[2],
+				t=regels[i].split("\t")[3];
+			if(adj[0]=="A"||adj[0]=="I"){s=[t,t=s][0]}
+			if(adj[0]=="I"||adj[0]=="O"){rc=1}else{rc=0}//NEED TO CHECK THIS WITH NOTES!
+			if(!(s>graaf.nodes.length)&&!(t>graaf.nodes.length)){
+				graaf.edges.push({
+					"source":graaf.nodes[vindNode(s)],
+					"target":graaf.nodes[vindNode(t)],
+					"sLen":graaf.nodes[vindNode(s)].lengte,
+					"tLen":graaf.nodes[vindNode(t)].lengte,
+					"revcomp":rc})
+			}
 		}
 	}
 	return graaf
@@ -173,11 +179,12 @@ function gravity(alpha) {
 }
 
 function coordinates(groepnummer){
-	var cx=0.5*w+0.3*w*Math.sin((groepnummer*2*Math.PI)/totalGroups)
-	var cy=0.5*h+0.3*h*Math.cos((groepnummer*2*Math.PI)/totalGroups)
-	return [cx,cy]
+	if(totalGroups==1){return [0.5*w,0.5*h]}else{
+		var cx=0.5*w+0.3*w*Math.sin((groepnummer*2*Math.PI)/totalGroups)
+		var cy=0.5*h+0.3*h*Math.cos((groepnummer*2*Math.PI)/totalGroups)
+		return [cx,cy]
+	}
 }
-
 function makeGraaf(graaf){
 	
 	var svg = d3.select("body").append("svg")
@@ -242,7 +249,7 @@ function makeGraaf(graaf){
 	
 	variatie(graaf)
 }
-
+/*
 function variatie2(graaf){
 	var nodevar={},
 		tussengem=0,
@@ -253,14 +260,17 @@ function variatie2(graaf){
 		tgroep=graaf.edges[i].target.groep
 		if(sgroep!=0&&tgroep!=0){
 			if(typeof(nodevar[graaf.edges[i].source.sequence])!="undefined"){
-				otherGroup=-sgroep+3
-				tussengem=(100*graaf.edges[i].target.proportions
-				nodevar[graaf.edges[i].source.sequence]+=1
+				var otherGroup=-sgroep+3,
+					tussengem=(100*graaf.edges[i].target.proportions
+				//nodevar[graaf.edges[i].source.sequence]=1
 				
 				
 				
-				}}}}
-
+				}
+				}
+				}
+				}
+*/
 function variatie(graaf){
 	var nodevar=[],
 		tussengem=0,
