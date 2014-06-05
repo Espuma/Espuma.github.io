@@ -60,7 +60,7 @@ var groepen=[],
 	w=4000,//eventually needs to be variable to make the user fit all the data.
 	h=4000,
 	r=30,
-	totalGroups=1//newblerACE["1"].length-1
+	totalGroups//newblerACE["1"].length-1
     
 window.addEventListener('load',function(){
 	var bestand=document.getElementById('bestand')
@@ -91,6 +91,8 @@ function parseFileInput(content,filename,callback){
 }
 
 function AMOSparse(regels,filename){
+	totalGroups=regels[0].split("\t")[4].slice(1,-1).split(",").length
+	console.log(totalGroups)
 	for(i=0;i<regels.length;i++){
 		if(regels[i].split("\t")[0]==="C"){//contigs
 			var eid=regels[i].split("\t")[1],
@@ -98,7 +100,9 @@ function AMOSparse(regels,filename){
 				sequence=regels[i].split("\t")[3],
 				lengte=sequence.length;
 			if(parseInt(lengte)>maxLen){maxLen=parseInt(lengte)}
-			graaf.nodes.push({"id":id,"name":eid,"sequence":sequence,"lengte":lengte,"groep":1,"proportions": [{"value":id,"group":1,"waarde":1},{"value":id,"group":1,"waarde":1}]})//obviously read mapping needs work
+			props=[]
+			for(i in regels[7290].split("\t")[4].slice(1,-1).split(",")){props.push({"value":id,"group":i+1,"waarde":parseInt(regels[7290].split("\t")[4].slice(1,-1).split(",")[i])})}	
+			graaf.nodes.push({"id":id,"name":eid,"sequence":sequence,"lengte":lengte,"groep":1,"proportions":props})//obviously read mapping needs work
 		}
 		if(regels[i].split("\t")[0]==="E"){//edges
 			var adj=regels[i].split("\t")[4],
@@ -117,16 +121,18 @@ function AMOSparse(regels,filename){
 		}
 	}
 	return graaf
-}			//nodes need to be analysed before edges. Also, current AMOS file is missing all but one edge...
+}
 			
 function Newblerparse(regels,filename){
+	var totalGroups=newblerACE["1"].length-1
 	for (i=0;i<regels.length;i++){
 		if(!isNaN(parseInt(regels[i].split("\t")[0]))){//collect nodes
 			var id=regels[i].split("\t")[0],
 				contig=regels[i].split("\t")[1],
 				lengte=regels[i].split("\t")[2];
 			if(parseInt(lengte)>maxLen){maxLen=parseInt(lengte)}
-			graaf.nodes.push({"id":id,"sequence":contig,"lengte":lengte,"groep":readRatio(contig)[0],"proportions": [{"value":id,"group":readRatio(contig)[1],"waarde":readRatio(contig)[2]},{"value":id,"group":readRatio(contig)[3],"waarde":readRatio(contig)[4]}]})
+			props=[{"value":id,"group":readRatio(contig)[1],"waarde":readRatio(contig)[2]},{"value":id,"group":readRatio(contig)[3],"waarde":readRatio(contig)[4]}]
+			graaf.nodes.push({"id":id,"sequence":contig,"lengte":lengte,"groep":readRatio(contig)[0],"proportions": props})
 						
 		}//end node loop
 		if(regels[i].split("\t")[0]==="C"){//collect edges
@@ -247,7 +253,7 @@ function makeGraaf(graaf){
 			.attr("y2", function(d){return d.target.y});
 	}
 	
-	variatie(graaf)
+	//variatie(graaf)
 }
 /*
 function variatie2(graaf){
