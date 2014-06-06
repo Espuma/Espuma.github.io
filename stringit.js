@@ -139,7 +139,7 @@ function groepering(mappingstr,totalGroups){
 	}
 		
 function Newblerparse(regels,filename){
-	var totalGroups=newblerACE["1"].length-1
+	totalGroups=newblerACE["1"].length-1
 	for (i=0;i<regels.length;i++){
 		if(!isNaN(parseInt(regels[i].split("\t")[0]))){//collect nodes
 			var id=regels[i].split("\t")[0],
