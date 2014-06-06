@@ -91,7 +91,7 @@ function parseFileInput(content,filename,callback){
 }
 
 function AMOSparse(regels,filename){
-	//totalGroups=regels[0].split("\t")[4].slice(1,-1).split(",").length//total number of groups
+	totalGroups=regels[0].split("\t")[4].slice(1,-1).split(",").length//total number of groups
 	for(i=0;i<regels.length;i++){
 		if(regels[i].split("\t")[0]==="C"){//contigs
 			var eid=regels[i].split("\t")[1],
@@ -101,8 +101,9 @@ function AMOSparse(regels,filename){
 			if(parseInt(lengte)>maxLen){maxLen=parseInt(lengte)}
 			map=regels[i].split("\t")[4].slice(1,-2).split(",")//list of mapping, as strings
 			props=[]//{"value":id,"group":1,"waarde":1}]
+//			console.log(groepering(map,totalGroups))
 			for(j in map){props.push({"value":id,"group":parseInt(j)+1,"waarde":parseInt(map[j])})}	
-			graaf.nodes.push({"id":id,"name":eid,"sequence":sequence,"lengte":lengte,"groep":groepering(map),"proportions":props})//obviously read mapping needs work
+			graaf.nodes.push({"id":id,"name":eid,"sequence":sequence,"lengte":lengte,"groep":groepering(map,totalGroups),"proportions":props})//obviously read mapping needs work
 		}
 		if(regels[i].split("\t")[0]==="E"){//edges
 			var adj=regels[i].split("\t")[4],
@@ -123,11 +124,10 @@ function AMOSparse(regels,filename){
 	return graaf
 }
 
-function groepering(mappingstr){
-	var totalGroups=mappingstr.length,
-		biggest=0,
-		biggesti=0,
-		totalreads=0
+function groepering(mappingstr,totalGroups){
+	biggest=0
+	biggesti=0
+	totalreads=0
 	for(k in mappingstr){
 		totalreads+=parseInt(mappingstr[k])
 		if(parseInt(mappingstr[k])>biggest){
@@ -164,7 +164,7 @@ function Newblerparse(regels,filename){
 }
 
 function vindNode(id) {
-	for (i in graaf.nodes) {
+	for (var i in graaf.nodes) {
 		if (graaf.nodes[i]["id"] === id) {
 			return i//moet eigenlijk id returnen, maar dat maakt die piechart heel lastig
 		}
@@ -256,7 +256,7 @@ function makeGraaf(graaf){
 		.attr("fill", function(d) { return color(d.data.group)});
 									
 	function tick(e) {
-		//node.each(gravity(e.alpha))
+		node.each(gravity(e.alpha))
 		
 		node.attr("cx",function(d){return Math.max(r,Math.min(w-r,d.x));})//bounding box doesn't work anymore
 			.attr("cy",function(d){return Math.max(r,Math.min(h-r,d.y));})
@@ -343,6 +343,8 @@ function variatie(graaf){
 	console.log(bars)
 }
 	
+//+!!Math.round(eigenVerh[0]/eigenVerh[1])+1
+
 function exporteer(graaf){//lees data object, schrijf naar .dot file.
 	var dotbestand="digraph:{\n"
 	for (regel in graaf.nodes){dotbestand.push(regel.id+" [comment=\""+regel.sequence+"\",group=\""+regel.group+"\"]\n")}
