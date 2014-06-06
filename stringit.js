@@ -57,8 +57,8 @@ var newblerACE={//[readsfromsample1,readfromsample2,totalcontigsize]
 var groepen=[],
 	graaf={"nodes":[],"edges":[]}, //{"nodes":[{}],"edges":[{},{},{}]}
 	maxLen=0,
-	w=4000,//eventually needs to be variable to make the user fit all the data.
-	h=4000,
+	w=3300,//eventually needs to be variable to make the user fit all the data.
+	h=3300,
 	r=30,
 	totalGroups//newblerACE["1"].length-1
     
@@ -91,8 +91,7 @@ function parseFileInput(content,filename,callback){
 }
 
 function AMOSparse(regels,filename){
-	totalGroups=regels[0].split("\t")[4].slice(1,-1).split(",").length
-	console.log(totalGroups)
+	totalGroups=regels[0].split("\t")[4].slice(1,-1).split(",").length//total number of groups
 	for(i=0;i<regels.length;i++){
 		if(regels[i].split("\t")[0]==="C"){//contigs
 			var eid=regels[i].split("\t")[1],
@@ -100,9 +99,11 @@ function AMOSparse(regels,filename){
 				sequence=regels[i].split("\t")[3],
 				lengte=sequence.length;
 			if(parseInt(lengte)>maxLen){maxLen=parseInt(lengte)}
-			props=[]
-			for(i in regels[7290].split("\t")[4].slice(1,-1).split(",")){props.push({"value":id,"group":i+1,"waarde":parseInt(regels[7290].split("\t")[4].slice(1,-1).split(",")[i])})}	
-			graaf.nodes.push({"id":id,"name":eid,"sequence":sequence,"lengte":lengte,"groep":1,"proportions":props})//obviously read mapping needs work
+			map=regels[i].split("\t")[4].slice(1,-2).split(",")//list of mapping, as strings
+			props=[]//{"value":id,"group":1,"waarde":1}]
+//			console.log(groepering(map,totalGroups))
+			for(j in map){props.push({"value":id,"group":parseInt(j)+1,"waarde":parseInt(map[j])})}	
+			graaf.nodes.push({"id":id,"name":eid,"sequence":sequence,"lengte":lengte,"groep":groepering(map,totalGroups),"proportions":props})//obviously read mapping needs work
 		}
 		if(regels[i].split("\t")[0]==="E"){//edges
 			var adj=regels[i].split("\t")[4],
@@ -122,7 +123,21 @@ function AMOSparse(regels,filename){
 	}
 	return graaf
 }
-			
+
+function groepering(mappingstr,totalGroups){
+	biggest=0
+	biggesti=0
+	totalreads=0
+	for(k in mappingstr){
+		totalreads+=parseInt(mappingstr[k])
+		if(parseInt(mappingstr[k])>biggest){
+			biggest=parseInt(mappingstr[k])
+			biggesti=parseInt(k)
+		}
+	}
+	if((biggest/totalreads)>(1/totalGroups+0.0)){return biggesti+1}else{return 0}
+	}
+		
 function Newblerparse(regels,filename){
 	var totalGroups=newblerACE["1"].length-1
 	for (i=0;i<regels.length;i++){
@@ -178,16 +193,16 @@ function radius(len){
 
 function gravity(alpha) {
 	return function(d) {
-		d.lengte>101?a=0.12*alpha:a=0//can install a variable gravity-pull-threshold here
+		d.groep>0?a=0.12*alpha:a=0//can install a variable gravity-pull-threshold here
 		d.x+=(coordinates(d.groep)[0]-d.x)*a;
 		d.y+=(coordinates(d.groep)[1]-d.y)*a;
   }
 }
 
 function coordinates(groepnummer){
-	if(totalGroups==1){return [0.5*w,0.5*h]}else{
-		var cx=0.5*w+0.3*w*Math.sin((groepnummer*2*Math.PI)/totalGroups)
-		var cy=0.5*h+0.3*h*Math.cos((groepnummer*2*Math.PI)/totalGroups)
+	if(groepnummer==0){return [0.5*w,0.5*h]}else{
+		var cx=0.5*w+0.4*w*Math.sin((groepnummer*2*Math.PI)/totalGroups)
+		var cy=0.5*h+0.2*h*Math.cos((groepnummer*2*Math.PI)/totalGroups)
 		return [cx,cy]
 	}
 }
@@ -243,8 +258,8 @@ function makeGraaf(graaf){
 	function tick(e) {
 		node.each(gravity(e.alpha))
 		
-		node.attr("x",function(d){return Math.max(r,Math.min(w-r,d.x));})//bounding box doesn't work anymore
-			.attr("y",function(d){return Math.max(r,Math.min(h-r,d.y));})
+		node.attr("cx",function(d){return Math.max(r,Math.min(w-r,d.x));})//bounding box doesn't work anymore
+			.attr("cy",function(d){return Math.max(r,Math.min(h-r,d.y));})
 			.attr("transform", function(d) { return "translate(" + d.x + "," + d.y + ")"});
 	
 		link.attr("x1", function(d){return d.source.x})
