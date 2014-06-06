@@ -57,10 +57,8 @@ var newblerACE={//[readsfromsample1,readfromsample2,totalcontigsize]
 var groepen=[],
 	graaf={"nodes":[],"edges":[]}, //{"nodes":[{}],"edges":[{},{},{}]}
 	maxLen=0,
-	w=3300,//eventually needs to be variable to make the user fit all the data.
-	h=3300,
-	r=30,
-	totalGroups//newblerACE["1"].length-1
+	r=30,//bounding box padding, measured from center of node
+	totalGroups,w,h,aspRatio//newblerACE["1"].length-1
     
 window.addEventListener('load',function(){
 	var bestand=document.getElementById('bestand')
@@ -201,25 +199,29 @@ function gravity(alpha) {
 
 function coordinates(groepnummer){
 	if(groepnummer==0){return [0.5*w,0.5*h]}else{
-		var cx=0.5*w+0.4*w*Math.sin((groepnummer*2*Math.PI)/totalGroups)
+		var cx=0.5*w+0.2*aspRatio*w*Math.sin((groepnummer*2*Math.PI)/totalGroups)
 		var cy=0.5*h+0.2*h*Math.cos((groepnummer*2*Math.PI)/totalGroups)
 		return [cx,cy]
 	}
 }
 function makeGraaf(graaf){
+	aspRatio=screen.width/screen.height
+	h=0.4*graaf.nodes.length+800
+	w=aspRatio*h	
 	
 	var svg = d3.select("body").append("svg")
 		.attr("id", "graafsvg")
-		.attr({"height":"90%"})
-		.attr("preserveAspectRatio", "xMidYMid meet")//bounding box doesn't work
+		.attr("height","90%")
+		.attr("width","100%")
 		.attr("viewBox", "0 0 "+w+" "+h)
+		.attr("preserveAspectRatio", "xMidYMid meet")
 		.append("g")
 		.attr("id","veld")
 	
 	var force = d3.layout.force()
 		.nodes(graaf.nodes)
 		.links(graaf.edges)
-		.size([w, h])
+		.size([w,h])
 		.charge(-30)
 		.gravity(0)
 		.linkDistance(25)
@@ -258,8 +260,8 @@ function makeGraaf(graaf){
 	function tick(e) {
 		node.each(gravity(e.alpha))
 		
-		node.attr("cx",function(d){return Math.max(r,Math.min(w-r,d.x));})//bounding box doesn't work anymore
-			.attr("cy",function(d){return Math.max(r,Math.min(h-r,d.y));})
+		node.attr("cx",function(d){return d.x=Math.max(r,Math.min(w-r,d.x));})
+			.attr("cy",function(d){return d.y=Math.max(r,Math.min(h-r,d.y));})
 			.attr("transform", function(d) { return "translate(" + d.x + "," + d.y + ")"});
 	
 		link.attr("x1", function(d){return d.source.x})
