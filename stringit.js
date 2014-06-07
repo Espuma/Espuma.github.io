@@ -98,7 +98,7 @@ function AMOSparse(regels,filename){
 				lengte=sequence.length;
 			if(parseInt(lengte)>maxLen){maxLen=parseInt(lengte)}
 			map=regels[i].split("\t")[4].slice(1,-2).split(",")//list of mapping, as strings
-			props=[]//{"value":id,"group":1,"waarde":1}]
+			props=[]//{"value":id,"group":1,"waarde":1}] add (waarde/totaalwaarde)
 //			console.log(groepering(map,totalGroups))
 			for(j in map){props.push({"value":id,"group":parseInt(j)+1,"waarde":parseInt(map[j])})}	
 			graaf.nodes.push({"id":id,"name":eid,"sequence":sequence,"lengte":lengte,"groep":groepering(map,totalGroups),"proportions":props})//obviously read mapping needs work
@@ -107,15 +107,14 @@ function AMOSparse(regels,filename){
 			var adj=regels[i].split("\t")[4],
 				s=regels[i].split("\t")[2],
 				t=regels[i].split("\t")[3];
-			if(adj[0]=="A"||adj[0]=="I"){s=[t,t=s][0]}
-			if(adj[0]=="I"||adj[0]=="O"){rc=1}else{rc=0}//NEED TO CHECK THIS WITH NOTES!
+//			if(adj[0]=="A"||adj[0]=="I"){s=[t,t=s][0]}//not really necessary. If I want to use this, work with 2 checks: 1 flips both source and target, and the other just the target. Flipped twice=not flipped, and save flip yes/no per source/target
+//			if(adj[0]=="I"||adj[0]=="O"){rc=1}else{rc=0}
 			if(!(s>graaf.nodes.length)&&!(t>graaf.nodes.length)){
 				graaf.edges.push({
 					"source":graaf.nodes[vindNode(s)],
 					"target":graaf.nodes[vindNode(t)],
 					"sLen":graaf.nodes[vindNode(s)].lengte,
-					"tLen":graaf.nodes[vindNode(t)].lengte,
-					"revcomp":rc})
+					"tLen":graaf.nodes[vindNode(t)].lengte})
 			}
 		}
 	}
@@ -199,7 +198,7 @@ function gravity(alpha) {
 
 function coordinates(groepnummer){
 	if(groepnummer==0){return [0.5*w,0.5*h]}else{
-		var cx=0.5*w+0.2*aspRatio*w*Math.sin((groepnummer*2*Math.PI)/totalGroups)
+		var cx=0.5*w+0.2*aspRatio*w*Math.sin((groepnummer*2*Math.PI)/totalGroups)//+0.5pi in case totalGroups===2
 		var cy=0.5*h+0.2*h*Math.cos((groepnummer*2*Math.PI)/totalGroups)
 		return [cx,cy]
 	}
@@ -224,8 +223,8 @@ function makeGraaf(graaf){
 		.size([w,h])
 		.charge(-30)
 		.gravity(0)
-		.linkDistance(25)
-		.linkStrength(1)
+		.linkDistance(60)//need to base this on deviation from average distribution,own distribution, and distribution of neighbors
+		.linkStrength(0.05)//function(d) targets link!
 		.on("tick", tick)
 		.start();
 
@@ -247,6 +246,8 @@ function makeGraaf(graaf){
 
     var arc = d3.svg.arc()
 		.outerRadius(function(d){return radius(graaf.nodes[(parseInt(d.data.value)-1)].lengte)})
+		//.startAngle(function(d){console.log("start",d);return d.startAngle})
+		//.endAngle(function(d){console.log("end",d);return d.endAngle})
 	
 	var color = d3.scale.category10();
 	
@@ -258,7 +259,7 @@ function makeGraaf(graaf){
 		.attr("fill", function(d) { return color(d.data.group)});
 									
 	function tick(e) {
-		node.each(gravity(e.alpha))
+		node.each(gravity(0.1*e.alpha))
 		
 		node.attr("cx",function(d){return d.x=Math.max(r,Math.min(w-r,d.x));})
 			.attr("cy",function(d){return d.y=Math.max(r,Math.min(h-r,d.y));})
