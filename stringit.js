@@ -89,7 +89,7 @@ function parseFileInput(content,filename,callback){
 }
 
 function AMOSparse(regels,filename){
-	totalGroups=regels[0].split("\t")[4].slice(1,-1).split(",").length//total number of groups
+	totalGroups=regels[0].split("\t")[4].slice(1,-2).split(",").length//total number of groups
 	for(i=0;i<regels.length;i++){
 		if(regels[i].split("\t")[0]==="C"){//contigs
 			var eid=regels[i].split("\t")[1],
