@@ -258,7 +258,7 @@ function makeGraaf(graaf){
 		.attr("fill", function(d) { return color(d.data.group)});
 									
 	function tick(e) {
-		node.each(gravity(e.alpha))//again better for smallAMOStests
+		node.each(gravity(e.alpha/2))//again better for smallAMOStests
 		
 		node.attr("cx",function(d){return d.x=Math.max(r,Math.min(w-r,d.x));})
 			.attr("cy",function(d){return d.y=Math.max(r,Math.min(h-r,d.y));})
