@@ -107,7 +107,7 @@ function AMOSparse(regels,filename){
 				s=regels[i].split("\t")[2],
 				t=regels[i].split("\t")[3];
 			if(adj[0]=="A"||adj[0]=="I"){s=[t,t=s][0]}
-			if(adj[0]=="I"||adj[0]=="O"){rc=1}else{rc=0}]}//not really necessary. If I want to use this, work with 2 checks: 1 flips both source and target, and the other just the target. Flipped twice=not flipped, and save flip yes/no per source/target
+			if(adj[0]=="I"||adj[0]=="O"){rc=1}else{rc=0}//not really necessary. If I want to use this, work with 2 checks: 1 flips both source and target, and the other just the target. Flipped twice=not flipped, and save flip yes/no per source/target
 			if(!(s>graaf.nodes.length)&&!(t>graaf.nodes.length)){
 				graaf.edges.push({
 					"source":graaf.nodes[vindNode(s)],
@@ -258,7 +258,7 @@ function makeGraaf(graaf){
 		.attr("fill", function(d) { return color(d.data.group)});
 									
 	function tick(e) {
-		node.each(gravity(0.1*e.alpha))//again better for smallAMOStests
+		node.each(gravity(e.alpha))//again better for smallAMOStests
 		
 		node.attr("cx",function(d){return d.x=Math.max(r,Math.min(w-r,d.x));})
 			.attr("cy",function(d){return d.y=Math.max(r,Math.min(h-r,d.y));})
