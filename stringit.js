@@ -197,10 +197,10 @@ function gravity(alpha) {
 
 function coordinates(groepnummer){
 	if(groepnummer==0){return [0.5*w,0.5*h]}else{
-		var cx=0.5*w+0.2*aspRatio*w*Math.sin((groepnummer*2*Math.PI)/totalGroups)//+0.5pi in case totalGroups==2
-		var cy=0.5*h+0.2*h*Math.cos((groepnummer*2*Math.PI)/totalGroups)
+		var cx=0.5*w+0.2*aspRatio*w*Math.round(1000*Math.sin(((1+groepnummer*2)*Math.PI)/totalGroups))/1000
+		var cy=0.5*h+0.2*h*Math.round(1000*Math.cos((1+groepnummer*2*Math.PI)/totalGroups))/1000
 		return [cx,cy]
-	}
+	}//not working perfectly, but at least it helps.
 }
 function makeGraaf(graaf){
 	aspRatio=screen.width/screen.height
