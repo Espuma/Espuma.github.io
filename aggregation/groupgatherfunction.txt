@@ -2,6 +2,18 @@
 //http://bl.ocks.org/mbostock/1093130  click functionality I want, simple on/off toggle
 //http://jsfiddle.net/mdml/Q7uNz data structure I want, simple graph json
 
+//for gravity purposes, only nodes with an overwhelming amount of a single read get a groep assigned. 
+//1.5/totalGroups, if there is only one origin that has such a high value.
+//If there are more with that value, recalculate again with that number for totalGroups
+//if no consensus is reached anywhere, assign groep 0
+//lets skip the fiddling on this exact number.
+
+//origin=for gravity
+//group=ID for aggregation
+//reads and their ratios are used to determine both group and origin
+//meaning of origin and group is still twisted in stringit.js
+
+//I might want an option at n=5 to remove any node that has no children (remove all single-node-subgraphs)
 
 neighbours={}
 function determineneighbours(nodes){//can probably be built in collection of edges
@@ -25,24 +37,40 @@ function matchcriteria(node,partner,n){
 			return true
 		else return false
 	case n=4
-		for each origin, compare readratios between node and partner
+		for each origin, compare readratios between node and partner//needs some work!
 			if they all match within some error rate (20%?)
 				return true
 	case n=5
 		return true
 		//all partners are eligible for this group, making a group for every set of connected nodes
 
-//for gravity purposes, only nodes with an overwhelming amount of a single read get a groep assigned. 
-//1.5/totalGroups, if there is only one origin that has such a high value.
-//If there are more with that value, recalculate again with that number for totalGroups
-//if no consensus is reached anywhere, assign groep 0
-//lets skip the fiddling on this exact number.
-
-//group=for gravity
-//origin=for aggregation
-//reads and their ratios are used to determine both group and origin
 
 function determineZoomLevelGroups(){
 zoomlevel=[1,2,3,4,5]
-id=[0,0,0,0,0]
+group=0//current group id number
+cgl=[]//all nodes in current group
 //nodeneighbours needs to be full, and group and proportions need to be determined.
+//that means this needs to be filled in each node, after nodes and edges are gathered from file in Xparse
+
+	for node in graaf.nodes:
+		for n in zoomlevel:
+			if n=1:
+				group+=1
+				node.id=group
+			else
+				if node.id[n]==0:
+					group+=1
+					node.id[n]=group
+					cgl+=node.name
+					for sub in group:
+						for partner in neighbours[sub]:
+							if not in group yet:
+								if matchcriteria(node,partner,n):
+									partner.id[n]=group
+									cgl+=partner.name
+							if all partners are in group:
+								//collect all outside links and do something with them later.
+								//will need to save a set of links for every zoomlevel...
+								//needs some work!
+								break
+				
