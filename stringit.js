@@ -245,7 +245,7 @@ function makeGraaf(graaf){
 		.sort(null);
 
     var arc = d3.svg.arc()
-		.outerRadius(function(d){console.log(graaf.nodes[parseInt(d.data.value)-1].id);return radius(graaf.nodes[(parseInt(d.data.value)-1)].lengte)})
+		.outerRadius(function(d){return radius(graaf.nodes[(parseInt(d.data.value)-1)].lengte)})
 //		.startAngle(function(d){return d.startAngle})
 //		.endAngle(function(d){return d.endAngle})
 	
