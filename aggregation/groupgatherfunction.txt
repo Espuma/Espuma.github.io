@@ -1,0 +1,48 @@
+//use for, not forEach. for is way faster
+//http://bl.ocks.org/mbostock/1093130  click functionality I want, simple on/off toggle
+//http://jsfiddle.net/mdml/Q7uNz data structure I want, simple graph json
+
+
+neighbours={}
+function determineneighbours(nodes){//can probably be built in collection of edges
+	for link in links:
+		//need to add check if neighbours[s] or [t] exists, otherwise += won't work
+		neighbours[link.source.id]+=[link.target.id]
+		neighbours[link.target.id]+=[link.source.id]
+//now neighbours[x] will contain all link partners of x
+}
+
+
+function matchcriteria(node,partner,n){
+	//case n=1 not necessary, because this is already assigned in the beginning.
+	case n=2
+		if neighbours[node.id].length==2
+			if neighbours[partner.id].length==2
+				return true
+		else return false
+	case n=3
+		if node.assignedgroup==partner.assignedgroup
+			return true
+		else return false
+	case n=4
+		for each origin, compare readratios between node and partner
+			if they all match within some error rate (20%?)
+				return true
+	case n=5
+		return true
+		//all partners are eligible for this group, making a group for every set of connected nodes
+
+//for gravity purposes, only nodes with an overwhelming amount of a single read get a groep assigned. 
+//1.5/totalGroups, if there is only one origin that has such a high value.
+//If there are more with that value, recalculate again with that number for totalGroups
+//if no consensus is reached anywhere, assign groep 0
+//lets skip the fiddling on this exact number.
+
+//group=for gravity
+//origin=for aggregation
+//reads and their ratios are used to determine both group and origin
+
+function determineZoomLevelGroups(){
+zoomlevel=[1,2,3,4,5]
+id=[0,0,0,0,0]
+//nodeneighbours needs to be full, and group and proportions need to be determined.

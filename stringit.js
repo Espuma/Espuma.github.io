@@ -1,5 +1,5 @@
 var newblerACE={//[readsfromsample1,readfromsample2,totalcontigsize]
-//needs to be dynamic and account for variable amount of samples
+//needs to be dynamic
 "1":[23628,3,423460],
 "2":[16743,4,303982],"3":[15465,10,279068],"4":[6,13782,250157],"5":[12408,19,229142],"6":[11927,10,215321],
 "7":[29,11385,204610],"8":[4,10726,194325],"9":[12,10322,186071],"10":[9,9160,167624],"11":[2,7771,142557],
@@ -54,8 +54,7 @@ var newblerACE={//[readsfromsample1,readfromsample2,totalcontigsize]
 "252":[79,0,137],"253":[0,343,154],"254":[0,90,125],"255":[0,36,114],"256":[0,469,143],
 "257":[0,47,114],"258":[0,113,109],"259":[0,60,104]
 }
-var groepen=[],
-	graaf={"nodes":[],"edges":[]}, //{"nodes":[{}],"edges":[{},{},{}]}
+var graaf={"nodes":[],"edges":[]}, //{"nodes":[{}],"edges":[{},{},{}]}
 	maxLen=0,
 	r=30,//bounding box padding, measured from center of node
 	totalGroups,w,h,aspRatio//newblerACE["1"].length-1
@@ -97,7 +96,7 @@ function AMOSparse(regels,filename){
 				sequence=regels[i].split("\t")[3],
 				lengte=sequence.length;
 			if(parseInt(lengte)>maxLen){maxLen=parseInt(lengte)}
-			map=regels[i].split("\t")[4].slice(1,-2).split(",")//list of mapping, as strings
+			map=regels[i].split("\t")[4].slice(1,-1).split(",")//list of mapping, as strings
 			props=[]//{"value":id,"group":1,"waarde":1}], add comparison between waarde and totaalwaarde
 			for(j in map){props.push({"value":id,"group":parseInt(j)+1,"waarde":parseInt(map[j])})}	
 			graaf.nodes.push({"id":id,"name":eid,"sequence":sequence,"lengte":lengte,"groep":groepering(map,totalGroups),"proportions":props})//obviously read mapping needs work
@@ -131,7 +130,8 @@ function groepering(mappingstr,totalGroups){
 			biggesti=parseInt(k)
 		}
 	}
-	if((biggest/totalreads)>(1/totalGroups+0.0)){return biggesti+1}else{return 0}
+	if((biggest/totalreads)>(1/totalGroups)){return biggesti+1}else{return 0}
+	//now simply returns the largest group.
 	}
 		
 function Newblerparse(regels,filename){
@@ -175,6 +175,7 @@ function readRatio(contigname){//load from (second) external file, not from inte
 		var reads=newblerACE[parseInt(contigname.slice(-4)).toString()]
 		if((reads[0]/reads[1]>3||reads[0]/reads[1]<0.333)&&reads[2]>99){
 			var ass=1+reads.indexOf(Math.max.apply(Math,reads.slice(0,totalGroups)))
+			//some more math here to determine groep correctly
 		}else{ass=0}
 		var lijst=[ass,2,reads[0],3,reads[1]]//[assignedGroup,group1,value1,group2,value2]
 		return lijst
@@ -189,14 +190,14 @@ function radius(len){
 
 function gravity(alpha) {
 	return function(d) {
-		d.groep>0?a=0.12*alpha:a=0//can install a variable gravity-pull-threshold here
+		d.groep>0?a=0.12*alpha:a=0.01*alpha;//can install a variable gravity-pull-threshold here
 		d.x+=(coordinates(d.groep)[0]-d.x)*a;
 		d.y+=(coordinates(d.groep)[1]-d.y)*a;
   }
-}
+}//gravity uses groepen, based on the sample with the most reads (above a certain value)
 
 function coordinates(groepnummer){
-	if(groepnummer==0){return [0.5*w,0.5*h]}else{
+	if(groepnummer==0){return [0.5*w,0.5*h]}else{//either this, or they start floating...
 		var cx=0.5*w+0.2*aspRatio*w*Math.round(1000*Math.sin(((1+groepnummer*2)*Math.PI)/totalGroups))/1000
 		var cy=0.5*h+0.2*h*Math.round(1000*Math.cos((1+groepnummer*2*Math.PI)/totalGroups))/1000
 		return [cx,cy]
@@ -222,8 +223,8 @@ function makeGraaf(graaf){
 		.size([w,h])
 		.charge(-30)
 		.gravity(0)
-		.linkDistance(25)
-		.linkStrength(0.05)//smallAMOStests works better this way
+		.linkDistance(25)//make them stick together if the level above indicates that they would have the same group, and more loose if they are different.
+		.linkStrength(0.1)//smallAMOStests works better this way
 		.on("tick", tick)
 		.start();
 
@@ -244,7 +245,7 @@ function makeGraaf(graaf){
 		.sort(null);
 
     var arc = d3.svg.arc()
-		.outerRadius(function(d){return radius(graaf.nodes[(parseInt(d.data.value)-1)].lengte)})
+		.outerRadius(function(d){console.log(graaf.nodes[parseInt(d.data.value)-1].id);return radius(graaf.nodes[(parseInt(d.data.value)-1)].lengte)})
 //		.startAngle(function(d){return d.startAngle})
 //		.endAngle(function(d){return d.endAngle})
 	
@@ -258,7 +259,7 @@ function makeGraaf(graaf){
 		.attr("fill", function(d) { return color(d.data.group)});
 									
 	function tick(e) {
-		node.each(gravity(e.alpha/2))//again better for smallAMOStests
+		node.each(gravity(e.alpha))//again better for smallAMOStests
 		
 		node.attr("cx",function(d){return d.x=Math.max(r,Math.min(w-r,d.x));})
 			.attr("cy",function(d){return d.y=Math.max(r,Math.min(h-r,d.y));})
@@ -272,28 +273,7 @@ function makeGraaf(graaf){
 	
 	//variatie(graaf)
 }
-/*
-function variatie2(graaf){
-	var nodevar={},
-		tussengem=0,
-		gemiddelde=" "
-	
-	for(i in graaf.edges){
-		sgroep=graaf.edges[i].source.groep
-		tgroep=graaf.edges[i].target.groep
-		if(sgroep!=0&&tgroep!=0){
-			if(typeof(nodevar[graaf.edges[i].source.sequence])!="undefined"){
-				var otherGroup=-sgroep+3,
-					tussengem=(100*graaf.edges[i].target.proportions
-				//nodevar[graaf.edges[i].source.sequence]=1
-				
-				
-				
-				}
-				}
-				}
-				}
-*/
+
 function variatie(graaf){
 	var nodevar=[],
 		tussengem=0,
@@ -341,7 +321,7 @@ function variatie(graaf){
 	for(i in nodevar){
 	nodevar[i][1]>0?bars[Math.round(nodevar[i][2]/5)]+=1:henk="henk"
 	}
-	console.log("\'bargraph van verdeling\': aantal nodes dat buren heeft van andere groep, van weinig naar veel buren")
+	console.log("\'bargraph van verdeling\': aantal nodes dat buren heeft van andere origin, van weinig naar veel buren")
 	console.log(bars)
 }
 	
