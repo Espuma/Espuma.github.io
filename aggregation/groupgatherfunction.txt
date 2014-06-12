@@ -13,44 +13,47 @@
 //reads and their ratios are used to determine both group and origin
 //meaning of origin and group is still twisted in stringit.js
 
-//I might want an option at n=5 to remove any node that has no children (remove all single-node-subgraphs)
+//I might want an option (in UI) at n=5 to remove any node that has no children (remove all single-node-subgraphs)
 
 neighbours={}
 function determineneighbours(nodes){//can probably be built in collection of edges
-	for link in links:
-		//need to add check if neighbours[s] or [t] exists, otherwise += won't work
-		neighbours[link.source.id]+=[link.target.id]
-		neighbours[link.target.id]+=[link.source.id]
-//now neighbours[x] will contain all link partners of x
+	for(link in links){
+		neighbours[link.source.id]!=undefined?neighbours[link.source.id].push(link.target.id):neighbours[link.source.id]=[link.target.id]
+		neighbours[link.target.id]!=undefined?neighbours[link.target.id].push(link.source.id):neighbours[link.target.id]=[link.source.id]
+		//now neighbours[x] will contain all link partners of x
+	}
 }
-
 
 function matchcriteria(node,partner,n){
 	//case n=1 not necessary, because this is already assigned in the beginning.
-	case n=2
-		if neighbours[node.id].length==2
-			if neighbours[partner.id].length==2
+	if(n==2){
+		if(neighbours[node.id].length==2){
+			if(neighbours[partner.id].length==2){
 				return true
-		else return false
-	case n=3
-		if node.assignedgroup==partner.assignedgroup
-			return true
-		else return false
-	case n=4
+			}else{
+				return false
+			}
+		}else{
+			return false
+		}
+	}
+	if(n=3){node.assignedgroup==partner.assignedgroup?return true:return false}
+	if(n=4){
 		for each origin, compare readratios between node and partner//needs some work!
 			if they all match within some error rate (20%?)
 				return true
-	case n=5
-		return true
+	}
+	if(n=5){return true)
 		//all partners are eligible for this group, making a group for every set of connected nodes
 
+
+//nodeneighbours needs to be full, and group and proportions need to be determined.
+//that means this needs to be filled in each node, after nodes and edges are gathered from file in XXXparse
 
 function determineZoomLevelGroups(){
 zoomlevel=[1,2,3,4,5]
 group=0//current group id number
 cgl=[]//all nodes in current group
-//nodeneighbours needs to be full, and group and proportions need to be determined.
-//that means this needs to be filled in each node, after nodes and edges are gathered from file in Xparse
 
 	for node in graaf.nodes:
 		for n in zoomlevel:

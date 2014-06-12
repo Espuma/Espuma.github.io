@@ -97,9 +97,14 @@ function AMOSparse(regels,filename){
 				lengte=sequence.length;
 			if(parseInt(lengte)>maxLen){maxLen=parseInt(lengte)}
 			map=regels[i].split("\t")[4].slice(1,-1).split(",")//list of mapping, as strings
-			props=[]//{"value":id,"group":1,"waarde":1}], add comparison between waarde and totaalwaarde
-			for(j in map){props.push({"value":id,"group":parseInt(j)+1,"waarde":parseInt(map[j])})}	
-			graaf.nodes.push({"id":id,"name":eid,"sequence":sequence,"lengte":lengte,"groep":groepering(map,totalGroups),"proportions":props})//obviously read mapping needs work
+			props=[]//{"value":id,"origin":1,"waarde":1}], add comparison between waarde and totaalwaarde
+			for(j in map){props.push({"value":id,"origin":parseInt(j)+1,"waarde":parseInt(map[j])})}	
+			graaf.nodes.push({
+				"groupid":["",id,0,0,0,0],
+				"name":eid,"sequence":sequence,
+				"lengte":lengte,"origin":groepering(map,totalGroups),
+				"proportions":props
+				})//groupid[0] is empty because I want it to count starting with 1. It is very artificial.
 		}
 		if(regels[i].split("\t")[0]==="E"){//edges
 			var adj=regels[i].split("\t")[4],
@@ -109,10 +114,10 @@ function AMOSparse(regels,filename){
 			if(adj[0]=="I"||adj[0]=="O"){rc=1}else{rc=0}//not really necessary. If I want to use this, work with 2 checks: 1 flips both source and target, and the other just the target. Flipped twice=not flipped, and save flip yes/no per source/target
 			if(!(s>graaf.nodes.length)&&!(t>graaf.nodes.length)){
 				graaf.edges.push({
-					"source":graaf.nodes[vindNode(s)],
-					"target":graaf.nodes[vindNode(t)],
-					"sLen":graaf.nodes[vindNode(s)].lengte,
-					"tLen":graaf.nodes[vindNode(t)].lengte})
+					"source":graaf.nodes[vindNode(s,1)],
+					"target":graaf.nodes[vindNode(t,1)],
+					"sLen":graaf.nodes[vindNode(s,1)].lengte,
+					"tLen":graaf.nodes[vindNode(t,1)].lengte})
 			}
 		}
 	}
@@ -143,7 +148,7 @@ function Newblerparse(regels,filename){
 				lengte=regels[i].split("\t")[2];
 			if(parseInt(lengte)>maxLen){maxLen=parseInt(lengte)}
 			props=[{"value":id,"group":readRatio(contig)[1],"waarde":readRatio(contig)[2]},{"value":id,"group":readRatio(contig)[3],"waarde":readRatio(contig)[4]}]
-			graaf.nodes.push({"id":id,"sequence":contig,"lengte":lengte,"groep":readRatio(contig)[0],"proportions": props})
+			graaf.nodes.push({"groupid":["",id,0,0,0,0],"sequence":contig,"lengte":lengte,"origin":readRatio(contig)[0],"proportions": props})
 						
 		}//end node loop
 		if(regels[i].split("\t")[0]==="C"){//collect edges
@@ -152,16 +157,16 @@ function Newblerparse(regels,filename){
 				t=regels[i].split("\t")[3];
 			if(adj[0]=="B"){s=[t,t=s][0]}
 			if(adj[0]===adj[1]){rc=1}else{rc=0}
-			graaf.edges.push({"source":graaf.nodes[vindNode(s)],"target":graaf.nodes[vindNode(t)],"sLen":graaf.nodes[vindNode(s)].lengte,"tLen":graaf.nodes[vindNode(t)].lengte,"revcomp":rc})
+			graaf.edges.push({"source":graaf.nodes[vindNode(s,1)],"target":graaf.nodes[vindNode(t,1)],"sLen":graaf.nodes[vindNode(s,1)].lengte,"tLen":graaf.nodes[vindNode(t,1)].lengte,"revcomp":rc})
 			//make source and target only reference the ID, without copying all the data from the whole node in this slot. It must do so without breaking the data part for the pie charts.
 		}//end edge loop
 	}//end regel loop
 	return graaf
 }
 
-function vindNode(id) {
+function vindNode(id,n) {
 	for (var i in graaf.nodes) {
-		if (graaf.nodes[i]["id"] === id) {
+		if (graaf.nodes[i].groupid[n] === id) {
 			return i//moet eigenlijk id returnen, maar dat maakt die piechart heel lastig
 		}
 	};
@@ -175,7 +180,7 @@ function readRatio(contigname){//load from (second) external file, not from inte
 		var reads=newblerACE[parseInt(contigname.slice(-4)).toString()]
 		if((reads[0]/reads[1]>3||reads[0]/reads[1]<0.333)&&reads[2]>99){
 			var ass=1+reads.indexOf(Math.max.apply(Math,reads.slice(0,totalGroups)))
-			//some more math here to determine groep correctly
+			//some more math here to determine origin correctly
 		}else{ass=0}
 		var lijst=[ass,2,reads[0],3,reads[1]]//[assignedGroup,group1,value1,group2,value2]
 		return lijst
@@ -190,16 +195,16 @@ function radius(len){
 
 function gravity(alpha) {
 	return function(d) {
-		d.groep>0?a=0.12*alpha:a=0.01*alpha;//can install a variable gravity-pull-threshold here
-		d.x+=(coordinates(d.groep)[0]-d.x)*a;
-		d.y+=(coordinates(d.groep)[1]-d.y)*a;
+		d.origin>0?a=0.12*alpha:a=0.01*alpha;//can install a variable gravity-pull-threshold here
+		d.x+=(coordinates(d.origin)[0]-d.x)*a;
+		d.y+=(coordinates(d.origin)[1]-d.y)*a;
   }
-}//gravity uses groepen, based on the sample with the most reads (above a certain value)
+}//gravity groups based on origin, calculated as the sample with the most reads (above a certain value)
 
-function coordinates(groepnummer){
-	if(groepnummer==0){return [0.5*w,0.5*h]}else{//either this, or they start floating...
-		var cx=0.5*w+0.2*aspRatio*w*Math.round(1000*Math.sin(((1+groepnummer*2)*Math.PI)/totalGroups))/1000
-		var cy=0.5*h+0.2*h*Math.round(1000*Math.cos((1+groepnummer*2*Math.PI)/totalGroups))/1000
+function coordinates(originnummer){
+	if(originnummer==0){return [0.5*w,0.5*h]}else{//either this, or they start floating...
+		var cx=0.5*w+0.2*aspRatio*w*Math.round(1000*Math.sin(((1+originnummer*2)*Math.PI)/totalGroups))/1000
+		var cy=0.5*h+0.2*h*Math.round(1000*Math.cos((1+originnummer*2*Math.PI)/totalGroups))/1000
 		return [cx,cy]
 	}//not working perfectly, but at least it helps.
 }
@@ -256,7 +261,7 @@ function makeGraaf(graaf){
 		.enter()
 		.append("path")
 		.attr("d",arc)
-		.attr("fill", function(d) { return color(d.data.group)});
+		.attr("fill", function(d) { return color(d.data.origin)});
 									
 	function tick(e) {
 		node.each(gravity(e.alpha))//again better for smallAMOStests
