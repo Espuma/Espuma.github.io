@@ -11,7 +11,6 @@
 //origin=for gravity
 //group=ID for aggregation
 //reads and their ratios are used to determine both group and origin
-//meaning of origin and group is still twisted in stringit.js
 
 //I might want an option (in UI) at n=5 to remove any node that has no children (remove all single-node-subgraphs)
 
@@ -47,33 +46,64 @@ function matchcriteria(node,partner,n){
 		//all partners are eligible for this group, making a group for every set of connected nodes
 
 
-//nodeneighbours needs to be full, and group and proportions need to be determined.
+//nodeneighbours needs to be full for the determination of the different groups
+//group and proportions already need to be determined as well
 //that means this needs to be filled in each node, after nodes and edges are gathered from file in XXXparse
-
+var zoomedges={}
 function determineZoomLevelGroups(){
-zoomlevel=[1,2,3,4,5]
-group=0//current group id number
-cgl=[]//all nodes in current group
-
-	for node in graaf.nodes:
-		for n in zoomlevel:
-			if n=1:
-				group+=1
-				node.id=group
-			else
-				if node.id[n]==0:
-					group+=1
-					node.id[n]=group
+	zoomlevel=[1,2,3,4,5]
+	cgl=[]//all nodes in current group
+	edges=[]all partners
+	for(n in zoomlevel){
+				groupid=0
+		for(gn in graaf.nodes){
+			var node=graaf.nodes[gn],
+			if(n=1){
+				groupid+=1
+				node.id[n]=groupid
+			}else {
+				if(node.id[n]==0){//select unassigned node, put in new group, collect whole group
+					groupid+=1
+					node.groupid[n]=groupid
 					cgl+=node.name
-					for sub in group:
-						for partner in neighbours[sub]:
-							if not in group yet:
-								if matchcriteria(node,partner,n):
-									partner.id[n]=group
+					//while groupsize>groupsize previous round{
+					for(sub in group){
+						for(partner in neighbours[sub]){
+							if(not in group yet){
+								if(matchcriteria(node,partner,n)){
+									partner.id[n]=groupid
 									cgl+=partner.name
+								}
 							if all partners are in group:
 								//collect all outside links and do something with them later.
 								//will need to save a set of links for every zoomlevel...
 								//needs some work!
 								break
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
 				
