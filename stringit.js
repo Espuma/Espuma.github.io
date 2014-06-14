@@ -100,7 +100,7 @@ function AMOSparse(regels,filename){
 			props=[]//{"value":id,"origin":1,"waarde":1}], add comparison between waarde and totaalwaarde
 			for(j in map){props.push({"value":id,"origin":parseInt(j)+1,"waarde":parseInt(map[j])})}	
 			graaf.nodes.push({
-				"groupid":["",id,0,0,0,0],
+				"groupid":[id,0,0,0,0],
 				"name":eid,"sequence":sequence,
 				"lengte":lengte,"origin":groepering(map,totalGroups),
 				"proportions":props
@@ -114,10 +114,10 @@ function AMOSparse(regels,filename){
 			if(adj[0]=="I"||adj[0]=="O"){rc=1}else{rc=0}//not really necessary. If I want to use this, work with 2 checks: 1 flips both source and target, and the other just the target. Flipped twice=not flipped, and save flip yes/no per source/target
 			if(!(s>graaf.nodes.length)&&!(t>graaf.nodes.length)){
 				graaf.edges.push({
-					"source":graaf.nodes[vindNode(s,1)],
-					"target":graaf.nodes[vindNode(t,1)],
-					"sLen":graaf.nodes[vindNode(s,1)].lengte,
-					"tLen":graaf.nodes[vindNode(t,1)].lengte})
+					"source":graaf.nodes[vindNode(s,0)],
+					"target":graaf.nodes[vindNode(t,0)],
+					"sLen":graaf.nodes[vindNode(s,0)].lengte,
+					"tLen":graaf.nodes[vindNode(t,0)].lengte})
 			}
 		}
 	}
@@ -148,7 +148,7 @@ function Newblerparse(regels,filename){
 				lengte=regels[i].split("\t")[2];
 			if(parseInt(lengte)>maxLen){maxLen=parseInt(lengte)}
 			props=[{"value":id,"group":readRatio(contig)[1],"waarde":readRatio(contig)[2]},{"value":id,"group":readRatio(contig)[3],"waarde":readRatio(contig)[4]}]
-			graaf.nodes.push({"groupid":["",id,0,0,0,0],"sequence":contig,"lengte":lengte,"origin":readRatio(contig)[0],"proportions": props})
+			graaf.nodes.push({"groupid":[id,0,0,0,0],"sequence":contig,"lengte":lengte,"origin":readRatio(contig)[0],"proportions": props})
 						
 		}//end node loop
 		if(regels[i].split("\t")[0]==="C"){//collect edges
@@ -157,7 +157,7 @@ function Newblerparse(regels,filename){
 				t=regels[i].split("\t")[3];
 			if(adj[0]=="B"){s=[t,t=s][0]}
 			if(adj[0]===adj[1]){rc=1}else{rc=0}
-			graaf.edges.push({"source":graaf.nodes[vindNode(s,1)],"target":graaf.nodes[vindNode(t,1)],"sLen":graaf.nodes[vindNode(s,1)].lengte,"tLen":graaf.nodes[vindNode(t,1)].lengte,"revcomp":rc})
+			graaf.edges.push({"source":graaf.nodes[vindNode(s,0)],"target":graaf.nodes[vindNode(t,0)],"sLen":graaf.nodes[vindNode(s,0)].lengte,"tLen":graaf.nodes[vindNode(t,0)].lengte,"revcomp":rc})
 			//make source and target only reference the ID, without copying all the data from the whole node in this slot. It must do so without breaking the data part for the pie charts.
 		}//end edge loop
 	}//end regel loop
@@ -328,6 +328,16 @@ function variatie(graaf){
 	}
 	console.log("\'bargraph van verdeling\': aantal nodes dat buren heeft van andere origin, van weinig naar veel buren")
 	console.log(bars)
+}
+
+neighbours={}
+function determineneighbours(links){//can probably be built in collection of edges
+	for(edge in graaf.edges){
+		link=graaf.edges[edge]
+		neighbours[link.source.groupid[0]]!=undefined?neighbours[link.source.groupid[0]].push(link.target.groupid[0]):neighbours[link.source.groupid[0]]=[link.target.groupid[0]]
+		neighbours[link.target.groupid[0]]!=undefined?neighbours[link.target.groupid[0]].push(link.source.groupid[0]):neighbours[link.target.groupid[0]]=[link.source.groupid[0]]
+		//now neighbours[x] will contain all link partners of x
+	}
 }
 	
 //+!!Math.round(eigenVerh[0]/eigenVerh[1])+1

@@ -15,10 +15,11 @@
 //I might want an option (in UI) at n=5 to remove any node that has no children (remove all single-node-subgraphs)
 
 neighbours={}
-function determineneighbours(nodes){//can probably be built in collection of edges
-	for(link in links){
-		neighbours[link.source.id]!=undefined?neighbours[link.source.id].push(link.target.id):neighbours[link.source.id]=[link.target.id]
-		neighbours[link.target.id]!=undefined?neighbours[link.target.id].push(link.source.id):neighbours[link.target.id]=[link.source.id]
+function determineneighbours(links){//can probably be built in collection of edges
+	for(edge in graaf.edges){
+		link=graaf.edges[edge]
+		neighbours[link.source.id]!=undefined?neighbours[link.source.id].push(parseInt(link.target.id)):neighbours[link.source.id]=[parseInt(link.target.id)]
+		neighbours[link.target.id]!=undefined?neighbours[link.target.id].push(parseInt(link.source.id)):neighbours[link.target.id]=[parseInt(link.source.id)]
 		//now neighbours[x] will contain all link partners of x
 	}
 }
@@ -49,40 +50,61 @@ function matchcriteria(node,partner,n){
 //nodeneighbours needs to be full for the determination of the different groups
 //group and proportions already need to be determined as well
 //that means this needs to be filled in each node, after nodes and edges are gathered from file in XXXparse
-var zoomedges={}
+var level1={"nodes":[],"edges":[]},
+	level2={"nodes":[],"edges":[]},
+	level3={"nodes":[],"edges":[]},
+	level4={"nodes":[],"edges":[]},
+	level5={"nodes":[],"edges":[]};
+	
 function determineZoomLevelGroups(){
-	zoomlevel=[1,2,3,4,5]
-	cgl=[]//all nodes in current group
-	edges=[]all partners
-	for(n in zoomlevel){
-				groupid=0
+	for(n=0;n<=4;n++){
+		currentlevel={"nodes":[],"edges":[]}
+		groupid=0
 		for(gn in graaf.nodes){
 			var node=graaf.nodes[gn],
-			if(n=1){
-				groupid+=1
-				node.id[n]=groupid
+			if(n=0){
+				var groupid+=1,
+					node.groupid[n]=groupid
 			}else {
 				if(node.id[n]==0){//select unassigned node, put in new group, collect whole group
-					groupid+=1
-					node.groupid[n]=groupid
-					cgl+=node.name
-					//while groupsize>groupsize previous round{
-					for(sub in group){
-						for(partner in neighbours[sub]){
-							if(not in group yet){
-								if(matchcriteria(node,partner,n)){
-									partner.id[n]=groupid
-									cgl+=partner.name
+					var cgn=[],//nodes in current group (children)
+						oe=[],//(Outside Edges) nodes not in group that are connected to those that are
+						groupsize=0,
+						prevgroupsize=0
+						groepid+=1,
+						node.groupid[n]=groepid
+					cgn.push(node.groupid[0])//all children of node[groepid] will get added to this list.
+					prevgroupsize=[groupsize,groupsize=cgn.length][0]
+					do{
+						for(nd in cgn){
+							//TODO:if-not-in-list check, otherwise it will get added every time. for example:
+							//if all partners are already in oe or cgn
+							for(num in neighbours[nd]){//TODO:check for nodes with no edges
+								partner=graaf.nodes[neighbours[nd][num]-1]
+								if matchcriteria(graaf.nodes[parseInt(nd)-1],partner,n){
+									graaf.nodes[neighbours[nd][num]-1].groupid[n]=groepid
+									cgn.push(partner.groupid[0])
+									prevgroupsize=[groupsize,groupsize=cgn.length][0]
+								}else{
+									oe.push(partner.groupid[0])//TODO:if-not-in-list check as well
 								}
-							if all partners are in group:
-								//collect all outside links and do something with them later.
-								//will need to save a set of links for every zoomlevel...
-								//needs some work!
-								break
-				
-				
-				
-				
+							}
+							if(nd=cgn.length){prevgroupsize=cgn.length}//not in correct place yet?
+						}
+					}while{prevgroupsize!=groupsize}
+					
+					//TODO:add cgn and oe to currentlevel
+				}
+			}
+		}
+		//TODO:simplify oe, or rebuild edges from oe.
+		if(n=0){var level1=currentlevel}			
+		if(n=1){var level2=currentlevel}			
+		if(n=2){var level3=currentlevel}		
+		if(n=3){var level4=currentlevel}		
+		if(n=4){var level5=currentlevel}
+	}
+}			
 				
 				
 				
