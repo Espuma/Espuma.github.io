@@ -1,4 +1,3 @@
-//use for, not forEach. for is way faster
 //http://bl.ocks.org/mbostock/1093130  click functionality I want, simple on/off toggle
 //http://jsfiddle.net/mdml/Q7uNz data structure I want, simple graph json
 
@@ -26,22 +25,12 @@ function determineneighbours(links){//can probably be built in collection of edg
 
 function matchcriteria(node,partner,n){
 	//case n=1 not necessary, because this is already assigned in the beginning.
-	if(n==2){
-		if(neighbours[node.id].length==2){
-			if(neighbours[partner.id].length==2){
-				return true
-			}else{
-				return false
-			}
-		}else{
-			return false
-		}
-	}
-	if(n=3){node.assignedgroup==partner.assignedgroup?return true:return false}
-	if(n=4){
-		for each origin, compare readratios between node and partner//needs some work!
-			if they all match within some error rate (20%?)
-				return true
+	if(n==2 && neighbours[node.id].length==2 && neighbours[partner.id].length==2){return true}
+	if(n=3 && node.assignedgroup==partner.assignedgroup){return true}
+	if(n=4){//TODO
+		//for each origin, compare readratios between node and partner//needs some work!
+		//	if they all match within some error rate (20%?)
+		//		return true
 	}
 	if(n=5){return true)
 		//all partners are eligible for this group, making a group for every set of connected nodes
@@ -50,30 +39,30 @@ function matchcriteria(node,partner,n){
 //nodeneighbours needs to be full for the determination of the different groups
 //group and proportions already need to be determined as well
 //that means this needs to be filled in each node, after nodes and edges are gathered from file in XXXparse
-var level1={"nodes":[],"edges":[]},
-	level2={"nodes":[],"edges":[]},
-	level3={"nodes":[],"edges":[]},
-	level4={"nodes":[],"edges":[]},
-	level5={"nodes":[],"edges":[]};
+
+
+var level1,level2,level3,level4,level5;
 	
 function determineZoomLevelGroups(){
 	for(n=0;n<=4;n++){
-		currentlevel={"nodes":[],"edges":[]}
-		groupid=0
+		var currentlevel={"nodes":[],"neighbours":[],"edges":[]},
+			groupid=0;
 		for(gn in graaf.nodes){
-			var node=graaf.nodes[gn],
+			var node=graaf.nodes[gn]
 			if(n=0){
 				var groupid+=1,
-					node.groupid[n]=groupid
+					node.groupid[n]=groupid;
 			}else {
+			//TODO:recursive search element for n=1 to consolidate whole string of nodes
+			
 				if(node.id[n]==0){//select unassigned node, put in new group, collect whole group
 					var cgn=[],//nodes in current group (children)
 						oe=[],//(Outside Edges) nodes not in group that are connected to those that are
 						groupsize=0,
 						prevgroupsize=0
 						groepid+=1,
-						node.groupid[n]=groepid
-					cgn.push(node.groupid[0])//all children of node[groepid] will get added to this list.
+						node.groupid[n]=groepid;
+					cgn.push(node.groupid[n-1])//will contain whole group with same groepid
 					prevgroupsize=[groupsize,groupsize=cgn.length][0]
 					do{
 						for(nd in cgn){
@@ -83,49 +72,40 @@ function determineZoomLevelGroups(){
 								partner=graaf.nodes[neighbours[nd][num]-1]
 								if matchcriteria(graaf.nodes[parseInt(nd)-1],partner,n){
 									graaf.nodes[neighbours[nd][num]-1].groupid[n]=groepid
-									cgn.push(partner.groupid[0])
+									cgn.push(partner.groupid[n-1])
 									prevgroupsize=[groupsize,groupsize=cgn.length][0]
 								}else{
-									oe.push(partner.groupid[0])//TODO:if-not-in-list check as well
+									oe.push(partner.groupid[n-1])//TODO:if-not-in-list check as well
 								}
 							}
 							if(nd=cgn.length){prevgroupsize=cgn.length}//not in correct place yet?
 						}
 					}while{prevgroupsize!=groupsize}
-					
-					//TODO:add cgn and oe to currentlevel
+					currentlevel.nodes.push({"id":groepid,"children":cgn})
+					currentlevel.neighbours.push({"id":groepid,"edgesto":oe})
 				}
 			}
 		}
-		//TODO:simplify oe, or rebuild edges from oe.
+		for(oe in currentlevel.neighbours){//need new way to draw edges, so that source and target are evaluated on the same level. Here, we evaluate for the highest n, but that might nog be necessary
+			for(buur in oe.edgesto){
+				currentlevel.edges.push({"source":oe.id,"target":lookupGroup(n,currentlevel.nodes,buur)}
+			}
+		}
+		
 		if(n=0){var level1=currentlevel}			
 		if(n=1){var level2=currentlevel}			
 		if(n=2){var level3=currentlevel}		
 		if(n=3){var level4=currentlevel}		
 		if(n=4){var level5=currentlevel}
 	}
-}			
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
+}
+
+lookupGroup(n,graafnodes,oeid){
+	for(nd in graafnodes){
+		node=graafnodes[nd]
+		if(node.id[n-1]===oeid){
+			return node.id[n]
+		}
+	}
+}
+	
