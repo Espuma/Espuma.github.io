@@ -108,4 +108,3 @@ lookupGroup(n,graafnodes,oeid){
 		}
 	}
 }
-	

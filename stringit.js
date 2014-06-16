@@ -174,7 +174,7 @@ function vindNode(id,n) {
 
 function readRatio(contigname){//load from (second) external file, not from internal var
 			//still needs to made extensible for more than 2 organisms. Use user input data for this choice.
-
+			
 	if(typeof newblerACE[parseInt(contigname.slice(-4)).toString()]!='undefined'){//used to fill groups with read ratio values, and to filter out contigs with no read mappings
 		
 		var reads=newblerACE[parseInt(contigname.slice(-4)).toString()]
@@ -208,6 +208,118 @@ function coordinates(originnummer){
 		return [cx,cy]
 	}//not working perfectly, but at least it helps.
 }
+
+//http://bl.ocks.org/mbostock/1093130  click functionality I want, simple on/off toggle
+//http://jsfiddle.net/mdml/Q7uNz data structure I want, simple graph json
+
+//for gravity purposes, only nodes with an overwhelming amount of a single read get a groep assigned. 
+//1.5/totalGroups, if there is only one origin that has such a high value.
+//If there are more with that value, recalculate again with that number for totalGroups
+//if no consensus is reached anywhere, assign groep 0
+//lets skip the fiddling on this exact number.
+
+//origin=for gravity
+//group=ID for aggregation
+//reads and their ratios are used to determine both group and origin
+
+//I might want an option (in UI) at n=5 to remove any node that has no children (remove all single-node-subgraphs)
+
+neighbours={}
+function determineneighbours(links){//can probably be built in collection of edges
+	for(edge in graaf.edges){
+		link=graaf.edges[edge]
+		neighbours[link.source.id]!=undefined?neighbours[link.source.id].push(parseInt(link.target.id)):neighbours[link.source.id]=[parseInt(link.target.id)]
+		neighbours[link.target.id]!=undefined?neighbours[link.target.id].push(parseInt(link.source.id)):neighbours[link.target.id]=[parseInt(link.source.id)]
+		//now neighbours[x] will contain all link partners of x
+	}
+}
+
+function matchcriteria(node,partner,n){
+	//case n=1 not necessary, because this is already assigned in the beginning.
+	if(n==2 && neighbours[node.id].length==2 && neighbours[partner.id].length==2){return true}
+	if(n=3 && node.assignedgroup==partner.assignedgroup){return true}
+	if(n=4){
+		for(origin in node.proportions){
+			if(node.proportions[origin].waarde>=0.8*partner.proportions[origin].waarde && node.proportions[origin].waarde<=1.2*partner.proportions[origin].waarde){return true}else{break}
+		//only considers waarde, not waarde/total
+	}
+	if(n=5){return true)
+		//all partners are eligible for this group, making a group for every set of connected nodes
+
+
+//nodeneighbours needs to be full for the determination of the different groups
+//group and proportions already need to be determined as well
+//that means this needs to be filled in each node, after nodes and edges are gathered from file in XXXparse
+
+
+var level1,level2,level3,level4,level5;
+	
+function determineZoomLevelGroups(){
+	for(n=0;n<=4;n++){
+		var currentlevel={"nodes":[],"neighbours":[],"edges":[]},
+			groupid=0;
+		for(gn in graaf.nodes){
+			var node=graaf.nodes[gn]
+			if(n=0){
+				var groupid+=1,
+					node.groupid[n]=groupid;
+			}else {
+			//TODO:recursive search element for n=1 to consolidate whole string of nodes
+			
+				if(node.id[n]==0){//select unassigned node, put in new group, collect whole group
+					var cgn=[],//nodes in current group (children)
+						oe=[],//(Outside Edges) nodes not in group that are connected to those that are
+						groupsize=0,
+						prevgroupsize=0
+						groepid+=1,
+						node.groupid[n]=groepid;
+					cgn.push(node.groupid[n-1])//will contain whole group with same groepid
+					prevgroupsize=[groupsize,groupsize=cgn.length][0]
+					do{
+						for(nd in cgn){
+							for(num in neighbours[nd]){//TODO:check for nodes with no edges
+								partner=graaf.nodes[neighbours[nd][num]-1]
+								if matchcriteria(graaf.nodes[parseInt(nd)-1],partner,n){
+									graaf.nodes[neighbours[nd][num]-1].groupid[n]=groepid
+									if(!(partner.groupid[n-1] in cgn)){cgn.push(partner.groupid[n-1])}
+									prevgroupsize=[groupsize,groupsize=cgn.length][0]
+								}else{
+									if(!(partner.groupid[n-1] in oe)){oe.push(partner.groupid[n-1])}
+								}
+							}
+							if(nd=cgn.length){prevgroupsize=cgn.length}//not in correct place yet?
+						}
+					}while{prevgroupsize!=groupsize}
+					currentlevel.nodes.push({"id":groepid,"children":cgn})
+					currentlevel.neighbours.push({"id":groepid,"edgesto":oe})
+				}
+			}
+		}
+		//perhaps need new way to draw edges, so that source and target are evaluated on the same level. 
+		//Here, we evaluate for the highest n, but that might nog be necessary
+		for(oe in currentlevel.neighbours){
+			for(buur in oe.edgesto){
+				currentlevel.edges.push({"source":oe.id,"target":lookupGroup(n,currentlevel.nodes,buur)}
+			}
+		}
+		
+		if(n=0){var level1=currentlevel}			
+		if(n=1){var level2=currentlevel}			
+		if(n=2){var level3=currentlevel}		
+		if(n=3){var level4=currentlevel}		
+		if(n=4){var level5=currentlevel}
+	}
+}
+
+lookupGroup(n,graafnodes,oeid){
+	for(nd in graafnodes){
+		node=graafnodes[nd]
+		if(node.id[n-1]===oeid){
+			return node.id[n]
+		}
+	}
+}
+
 function makeGraaf(graaf){
 	aspRatio=screen.width/screen.height
 	h=0.4*graaf.nodes.length+800
@@ -274,73 +386,8 @@ function makeGraaf(graaf){
 			.attr("y1", function(d){return d.source.y})
 			.attr("x2", function(d){return d.target.x})
 			.attr("y2", function(d){return d.target.y});
-	}
-	
-	//variatie(graaf)
+	}	
 }
-
-function variatie(graaf){
-	var nodevar=[],
-		tussengem=0,
-		gemiddelde=" "
-	for(i in graaf.nodes){
-		var eigenVerh=0
-		switch(true){
-			case graaf.nodes[i].proportions[0].waarde==1:
-			default:
-				eigenVerh=0
-				break;
-			case graaf.nodes[i].proportions[0].waarde>graaf.nodes[i].proportions[1].waarde:
-				eigenVerh=1
-				break;
-			case graaf.nodes[i].proportions[1].waarde>graaf.nodes[i].proportions[0].waarde:
-				eigenVerh=2
-				break;
-			}
-		for(j in graaf.edges){
-			var sw0=graaf.edges[j].source.proportions[0].waarde,
-				sw1=graaf.edges[j].source.proportions[1].waarde,
-				tw0=graaf.edges[j].target.proportions[0].waarde,
-				tw1=graaf.edges[j].target.proportions[1].waarde
-			if(graaf.edges[j].source.id===graaf.nodes[i].id){
-				tussengem=(100*tw0)/(tw0+tw1)
-				if(eigenVerh===2){
-					gemiddelde==" "?gemiddelde=tussengem:gemiddelde=(tussengem+gemiddelde)/2
-				}else{
-					gemiddelde==" "?gemiddelde=100-tussengem:gemiddelde=((100-tussengem)+gemiddelde)/2
-				}	
-			} else 	if(graaf.edges[j].target.id===graaf.nodes[i].id){
-				tussengem=(100*sw0)/(sw0+sw1)
-				if(eigenVerh===2){
-					gemiddelde==" "?gemiddelde=tussengem:gemiddelde=(tussengem+gemiddelde)/2
-				}else{
-					gemiddelde==" "?gemiddelde=100-tussengem:gemiddelde=((100-tussengem)+gemiddelde)/2
-				}
-			}
-		}
-		nodevar.push([graaf.nodes[i].id,eigenVerh,gemiddelde])//[node.id,ownGroup,readsFromOtherGroup,readsFromOwnGroup]
-		gemiddelde=" "
-	}
-	//for(i in nodevar){console.log(nodevar[i])}
-	bars=[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
-	for(i in nodevar){
-	nodevar[i][1]>0?bars[Math.round(nodevar[i][2]/5)]+=1:henk="henk"
-	}
-	console.log("\'bargraph van verdeling\': aantal nodes dat buren heeft van andere origin, van weinig naar veel buren")
-	console.log(bars)
-}
-
-neighbours={}
-function determineneighbours(links){//can probably be built in collection of edges
-	for(edge in graaf.edges){
-		link=graaf.edges[edge]
-		neighbours[link.source.groupid[0]]!=undefined?neighbours[link.source.groupid[0]].push(link.target.groupid[0]):neighbours[link.source.groupid[0]]=[link.target.groupid[0]]
-		neighbours[link.target.groupid[0]]!=undefined?neighbours[link.target.groupid[0]].push(link.source.groupid[0]):neighbours[link.target.groupid[0]]=[link.source.groupid[0]]
-		//now neighbours[x] will contain all link partners of x
-	}
-}
-	
-//+!!Math.round(eigenVerh[0]/eigenVerh[1])+1
 
 function exporteer(graaf){//lees data object, schrijf naar .dot file.
 	var dotbestand="digraph:{\n"
