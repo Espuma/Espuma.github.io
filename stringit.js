@@ -1,3 +1,13 @@
+//http://bl.ocks.org/mbostock/1093130  click functionality I want, simple on/off toggle
+//http://jsfiddle.net/mdml/Q7uNz data structure I want, simple graph json
+
+
+//origin=for gravity
+//group=ID for aggregation
+//reads and their ratios are used to determine both group and origin
+
+//I might want an option (in UI) at n=5 to remove any node that has no children (remove all single-node-subgraphs)
+
 var newblerACE={//[readsfromsample1,readfromsample2,totalcontigsize]
 //needs to be dynamic
 "1":[23628,3,423460],
@@ -57,7 +67,11 @@ var newblerACE={//[readsfromsample1,readfromsample2,totalcontigsize]
 var graaf={"nodes":[],"edges":[]}, //{"nodes":[{}],"edges":[{},{},{}]}
 	maxLen=0,
 	r=30,//bounding box padding, measured from center of node
-	totalGroups,w,h,aspRatio//newblerACE["1"].length-1
+	totalGroups,w,h,aspRatio,//newblerACE["1"].length-1
+	groupid=0,aantalnodes=0,
+	neighbours={},nodelookup=[],
+	level1,level2,level3,level4,level5,
+	currentlevel={"nodes":[],"neighbours":[],"edges":[]};
     
 window.addEventListener('load',function(){
 	var bestand=document.getElementById('bestand')
@@ -94,17 +108,22 @@ function AMOSparse(regels,filename){
 			var eid=regels[i].split("\t")[1],
 				id=parseInt(eid.slice(6)).toString()
 				sequence=regels[i].split("\t")[3],
-				lengte=sequence.length;
+				lengte=sequence.length,
+				aantalnodes+=1
 			if(parseInt(lengte)>maxLen){maxLen=parseInt(lengte)}
 			map=regels[i].split("\t")[4].slice(1,-1).split(",")//list of mapping, as strings
-			props=[]//{"value":id,"origin":1,"waarde":1}], add comparison between waarde and totaalwaarde
-			for(j in map){props.push({"value":id,"origin":parseInt(j)+1,"waarde":parseInt(map[j])})}	
-			graaf.nodes.push({
-				"groupid":[id,0,0,0,0],
+			props=[]//{"id":id,"origin":1,"waarde":1}], add comparison between waarde and totaalwaarde
+			for(j in map){props.push({"id":id,"origin":parseInt(j)+1,"waarde":parseInt(map[j])})}	
+			nodegegevens={
+				"id":id,//origin
+				"group":[id,0,0,0,0],//groupid
 				"name":eid,"sequence":sequence,
 				"lengte":lengte,"origin":groepering(map,totalGroups),
 				"proportions":props
-				})//groupid[0] is empty because I want it to count starting with 1. It is very artificial.
+				}
+			nodelookup[id]=nodegegevens
+			graaf.nodes.push(nodegegevens)
+			
 		}
 		if(regels[i].split("\t")[0]==="E"){//edges
 			var adj=regels[i].split("\t")[4],
@@ -112,17 +131,21 @@ function AMOSparse(regels,filename){
 				t=regels[i].split("\t")[3];
 			if(adj[0]=="A"||adj[0]=="I"){s=[t,t=s][0]}
 			if(adj[0]=="I"||adj[0]=="O"){rc=1}else{rc=0}//not really necessary. If I want to use this, work with 2 checks: 1 flips both source and target, and the other just the target. Flipped twice=not flipped, and save flip yes/no per source/target
-			if(!(s>graaf.nodes.length)&&!(t>graaf.nodes.length)){
-				graaf.edges.push({
-					"source":graaf.nodes[vindNode(s,0)],
-					"target":graaf.nodes[vindNode(t,0)],
-					"sLen":graaf.nodes[vindNode(s,0)].lengte,
-					"tLen":graaf.nodes[vindNode(t,0)].lengte})
+			if(!(s>aantalnodes)&&!(t>aantalnodes)){//used to skip edges with references to unexisting nodes
+				graaf.edges.push({"source":nodelookup[s],"target":nodelookup[t]})
+				neighbours[s]!=undefined?neighbours[s].push(t):neighbours[s]=[t]
+				neighbours[t]!=undefined?neighbours[t].push(s):neighbours[t]=[s]
 			}
+			
 		}
 	}
+	determineZoomLevelGroups()
 	return graaf
 }
+
+//nodeneighbours needs to be full for the determination of the different groups
+//group and proportions already need to be determined as well
+//that means this needs to be filled in each node, after nodes and edges are gathered from file in XXXparse
 
 function groepering(mappingstr,totalGroups){
 	biggest=0
@@ -139,6 +162,12 @@ function groepering(mappingstr,totalGroups){
 	//now simply returns the largest group.
 	}
 		
+//for gravity purposes, only nodes with an overwhelming amount of a single read get a groep assigned. 
+//1.5/totalGroups, if there is only one origin that has such a high value.
+//If there are more with that value, recalculate again with that number for totalGroups
+//if no consensus is reached anywhere, assign groep 0
+//lets skip the fiddling on this exact number.
+
 function Newblerparse(regels,filename){
 	totalGroups=newblerACE["1"].length-1
 	for (i=0;i<regels.length;i++){
@@ -147,7 +176,7 @@ function Newblerparse(regels,filename){
 				contig=regels[i].split("\t")[1],
 				lengte=regels[i].split("\t")[2];
 			if(parseInt(lengte)>maxLen){maxLen=parseInt(lengte)}
-			props=[{"value":id,"group":readRatio(contig)[1],"waarde":readRatio(contig)[2]},{"value":id,"group":readRatio(contig)[3],"waarde":readRatio(contig)[4]}]
+			props=[{"id":id,"group":readRatio(contig)[1],"waarde":readRatio(contig)[2]},{"id":id,"group":readRatio(contig)[3],"waarde":readRatio(contig)[4]}]
 			graaf.nodes.push({"groupid":[id,0,0,0,0],"sequence":contig,"lengte":lengte,"origin":readRatio(contig)[0],"proportions": props})
 						
 		}//end node loop
@@ -162,14 +191,6 @@ function Newblerparse(regels,filename){
 		}//end edge loop
 	}//end regel loop
 	return graaf
-}
-
-function vindNode(id,n) {
-	for (var i in graaf.nodes) {
-		if (graaf.nodes[i].groupid[n] === id) {
-			return i//moet eigenlijk id returnen, maar dat maakt die piechart heel lastig
-		}
-	};
 }
 
 function readRatio(contigname){//load from (second) external file, not from internal var
@@ -209,109 +230,21 @@ function coordinates(originnummer){
 	}//not working perfectly, but at least it helps.
 }
 
-//http://bl.ocks.org/mbostock/1093130  click functionality I want, simple on/off toggle
-//http://jsfiddle.net/mdml/Q7uNz data structure I want, simple graph json
-
-//for gravity purposes, only nodes with an overwhelming amount of a single read get a groep assigned. 
-//1.5/totalGroups, if there is only one origin that has such a high value.
-//If there are more with that value, recalculate again with that number for totalGroups
-//if no consensus is reached anywhere, assign groep 0
-//lets skip the fiddling on this exact number.
-
-//origin=for gravity
-//group=ID for aggregation
-//reads and their ratios are used to determine both group and origin
-
-//I might want an option (in UI) at n=5 to remove any node that has no children (remove all single-node-subgraphs)
-
-neighbours={}
-function determineneighbours(links){//can probably be built in collection of edges
-	for(edge in graaf.edges){
-		link=graaf.edges[edge]
-		neighbours[link.source.id]!=undefined?neighbours[link.source.id].push(parseInt(link.target.id)):neighbours[link.source.id]=[parseInt(link.target.id)]
-		neighbours[link.target.id]!=undefined?neighbours[link.target.id].push(parseInt(link.source.id)):neighbours[link.target.id]=[parseInt(link.source.id)]
-		//now neighbours[x] will contain all link partners of x
-	}
-}
-
 function matchcriteria(node,partner,n){
-	//case n=1 not necessary, because this is already assigned in the beginning.
-	if(n==2 && neighbours[node.id].length==2 && neighbours[partner.id].length==2){return true}
-	if(n=3 && node.assignedgroup==partner.assignedgroup){return true}
-	if(n=4){
+	//case n=0 not necessary, because this is already assigned in the beginning.
+	if(n==1 && neighbours[node.id].length==2 && neighbours[partner.id].length==2){return true}
+	if(n==2 && node.origin==partner.origin){return true}
+	if(n==3){
 		for(origin in node.proportions){
 			if(node.proportions[origin].waarde>=0.8*partner.proportions[origin].waarde && node.proportions[origin].waarde<=1.2*partner.proportions[origin].waarde){return true}else{break}
 		//only considers waarde, not waarde/total
+		}
 	}
-	if(n=5){return true)
+	if(n==4){return true}
 		//all partners are eligible for this group, making a group for every set of connected nodes
-
-
-//nodeneighbours needs to be full for the determination of the different groups
-//group and proportions already need to be determined as well
-//that means this needs to be filled in each node, after nodes and edges are gathered from file in XXXparse
-
-
-var level1,level2,level3,level4,level5;
-	
-function determineZoomLevelGroups(){
-	for(n=0;n<=4;n++){
-		var currentlevel={"nodes":[],"neighbours":[],"edges":[]},
-			groupid=0;
-		for(gn in graaf.nodes){
-			var node=graaf.nodes[gn]
-			if(n=0){
-				var groupid+=1,
-					node.groupid[n]=groupid;
-			}else {
-			//TODO:recursive search element for n=1 to consolidate whole string of nodes
-			
-				if(node.id[n]==0){//select unassigned node, put in new group, collect whole group
-					var cgn=[],//nodes in current group (children)
-						oe=[],//(Outside Edges) nodes not in group that are connected to those that are
-						groupsize=0,
-						prevgroupsize=0
-						groepid+=1,
-						node.groupid[n]=groepid;
-					cgn.push(node.groupid[n-1])//will contain whole group with same groepid
-					prevgroupsize=[groupsize,groupsize=cgn.length][0]
-					do{
-						for(nd in cgn){
-							for(num in neighbours[nd]){//TODO:check for nodes with no edges
-								partner=graaf.nodes[neighbours[nd][num]-1]
-								if matchcriteria(graaf.nodes[parseInt(nd)-1],partner,n){
-									graaf.nodes[neighbours[nd][num]-1].groupid[n]=groepid
-									if(!(partner.groupid[n-1] in cgn)){cgn.push(partner.groupid[n-1])}
-									prevgroupsize=[groupsize,groupsize=cgn.length][0]
-								}else{
-									if(!(partner.groupid[n-1] in oe)){oe.push(partner.groupid[n-1])}
-								}
-							}
-							if(nd=cgn.length){prevgroupsize=cgn.length}//not in correct place yet?
-						}
-					}while{prevgroupsize!=groupsize}
-					currentlevel.nodes.push({"id":groepid,"children":cgn})
-					currentlevel.neighbours.push({"id":groepid,"edgesto":oe})
-				}
-			}
-		}
-		//perhaps need new way to draw edges, so that source and target are evaluated on the same level. 
-		//Here, we evaluate for the highest n, but that might nog be necessary
-		for(oe in currentlevel.neighbours){
-			for(buur in oe.edgesto){
-				currentlevel.edges.push({"source":oe.id,"target":lookupGroup(n,currentlevel.nodes,buur)}
-			}
-		}
-		
-		if(n=0){var level1=currentlevel}			
-		if(n=1){var level2=currentlevel}			
-		if(n=2){var level3=currentlevel}		
-		if(n=3){var level4=currentlevel}		
-		if(n=4){var level5=currentlevel}
-	}
+	return false
 }
-
-lookupGroup(n,graafnodes,oeid){
+function lookupGroup(n,graafnodes,oeid){
 	for(nd in graafnodes){
 		node=graafnodes[nd]
 		if(node.id[n-1]===oeid){
@@ -319,10 +252,74 @@ lookupGroup(n,graafnodes,oeid){
 		}
 	}
 }
+	
+function determineZoomLevelGroups(){
+	for(n=0;n<=4;n++){
+		var groupid=0;
+		for(gn in graaf.nodes){
+			var node=graaf.nodes[gn]
+			if(n==0){
+				groupid+=1
+				node.group[n]=groupid;
+			}else {
+			//TODO:recursive search element for n=1 to consolidate whole string of nodes
+				if(node.group[n]==0){//select unassigned node, put in new group, collect whole group
+					var cgn=[],//nodes in current group (children)
+						oe=[]//(Outside Edges) nodes not in group that are connected to those that are
+						groupid+=1,
+						node.group[n]=groupid;
+					cgn.push(node.group[n-1])//will contain whole group with same groepid
+					nodeGotAdded=0
+					console.log("newgroup",currentlevel.nodes.length)
+					do{
+						nodeGotAdded=0
+						for(nd in cgn){//iterating through this multiple times takes really long if it gets too big (n=4). start working with 'newly added' list.
+							nig=cgn[nd]//nodeingroup
+							if(neighbours[nig]!=undefined){
+								for(num in neighbours[nig]){
+									partner=nodelookup[neighbours[nig][num]]
+									if(!(contains(cgn,partner.group[n-1]))){
+										if(matchcriteria(nodelookup[nig],partner,n)){
+											console.log("now adding",partner.group[n-1],"group size",cgn.length)
+											graaf.nodes[neighbours[nig][num]-1].group[n]=groupid
+											cgn.push(partner.group[n-1])
+											nodeGotAdded+=1
+										}else{
+											if(!(contains(oe,partner.group[n-1]))){oe.push(partner.group[n-1])}
+										}
+									}
+								}
+							}
+						}
+					}while(nodeGotAdded)
+					currentlevel.nodes.push({"id":groupid,"children":cgn})
+					currentlevel.neighbours.push({"id":groupid,"edgesto":oe})
+					console.log(cgn)
+					
+				}else{console.log("already added",node.id)}
+			}
+		}
+		//perhaps need new way to draw edges, so that source and target are evaluated on the same level. 
+		//Here, we evaluate for the highest n, but that might nog be necessary
+		for(oe in currentlevel.neighbours){
+			for(buur in oe.edgesto){
+				currentlevel.edges.push({"source":oe.id,"target":lookupGroup(n,currentlevel.nodes,buur)})
+			}
+		}
+		
+		if(n==0){level1=currentlevel}			
+		if(n==1){level2=currentlevel}			
+		if(n==2){level3=currentlevel}		
+		if(n==3){level4=currentlevel}		
+		if(n==4){level5=currentlevel}
+		cgn=[],oe=[];
+	}
+}
+
 
 function makeGraaf(graaf){
 	aspRatio=screen.width/screen.height
-	h=0.4*graaf.nodes.length+800
+	h=0.4*aantalnodes+800
 	w=aspRatio*h	
 	
 	var svg = d3.select("body").append("svg")
@@ -345,14 +342,14 @@ function makeGraaf(graaf){
 		.on("tick", tick)
 		.start();
 
-	var link = svg.selectAll(".link")
+	var edge = svg.selectAll(".link")
 		.attr("id","edges")
 		.data(graaf.edges)
 		.enter().append("line")
 		.attr("class", "link");
 
 	var node = svg.selectAll(".node")
-		.data(graaf.nodes)
+		.data(graaf.nodes,function(d){return d.id})
 		.enter().append("g")
 		.attr("class", "node")
 		.call(force.drag);
@@ -362,9 +359,7 @@ function makeGraaf(graaf){
 		.sort(null);
 
     var arc = d3.svg.arc()
-		.outerRadius(function(d){return radius(graaf.nodes[(parseInt(d.data.value)-1)].lengte)})
-//		.startAngle(function(d){return d.startAngle})
-//		.endAngle(function(d){return d.endAngle})
+		.outerRadius(function(d){return radius(nodelookup[d.data.id].lengte)})
 	
 	var color = d3.scale.category10();
 	
@@ -382,7 +377,7 @@ function makeGraaf(graaf){
 			.attr("cy",function(d){return d.y=Math.max(r,Math.min(h-r,d.y));})
 			.attr("transform", function(d) { return "translate(" + d.x + "," + d.y + ")"});
 	
-		link.attr("x1", function(d){return d.source.x})
+		edge.attr("x1", function(d){return d.source.x})
 			.attr("y1", function(d){return d.source.y})
 			.attr("x2", function(d){return d.target.x})
 			.attr("y2", function(d){return d.target.y});
@@ -394,4 +389,10 @@ function exporteer(graaf){//lees data object, schrijf naar .dot file.
 	for (regel in graaf.nodes){dotbestand.push(regel.id+" [comment=\""+regel.sequence+"\",group=\""+regel.group+"\"]\n")}
 	for (regel in graaf.edges){dotbestand.push(regel.source+" -> "+regel.target+"[comment=\"sStart=\""+regel.sStart+"\",sEnd=\""+regel.sEnd+"\",tStart=\""+regel.tStart+"\",tEnd=\""+regel.tEnd+"\",revcomp=\""+regel.revcomp+"\"]\n")}
 	dotbestand+="}"
+}
+
+function contains(array,object){
+    var i = array.length;
+    while(i--){if(array[i]===object){return true}}
+    return false;
 }
