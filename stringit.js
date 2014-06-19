@@ -116,12 +116,12 @@ function AMOSparse(regels,filename){
 			for(j in map){props.push({"id":id,"origin":parseInt(j)+1,"waarde":parseInt(map[j])})}	
 			nodegegevens={
 				"id":id,//origin
-				"group":[id,0,0,0,0],//groupid
+				"group":[0,0,0,0,0],//groupid
 				"name":eid,"sequence":sequence,
 				"lengte":lengte,"origin":groepering(map,totalGroups),
 				"proportions":props
 				}
-			nodelookup[id]=nodegegevens
+			nodelookup[parseInt(id)]=nodegegevens
 			graaf.nodes.push(nodegegevens)
 			
 		}
@@ -257,46 +257,46 @@ function determineZoomLevelGroups(){
 	for(n=0;n<=4;n++){
 		var groupid=0;
 		for(gn in graaf.nodes){
-			var node=graaf.nodes[gn]
 			if(n==0){
 				groupid+=1
-				node.group[n]=groupid;
-			}else {
-			//TODO:recursive search element for n=1 to consolidate whole string of nodes
-				if(node.group[n]==0){//select unassigned node, put in new group, collect whole group
+				graaf.nodes[gn].group[n]=parseInt(graaf.nodes[gn].id);
+			}else{
+				if(graaf.nodes[gn].group[n]==0){//select unassigned node, put in new group, collect whole group
 					var cgn=[],//nodes in current group (children)
-						oe=[]//(Outside Edges) nodes not in group that are connected to those that are
-						groupid+=1,
-						node.group[n]=groupid;
-					cgn.push(node.group[n-1])//will contain whole group with same groepid
-					nodeGotAdded=0
-					console.log("newgroup",currentlevel.nodes.length)
+						oe=[],//(Outside Edges) nodes not in group that are connected to those that are
+						newlyadded=0
+					groupid+=1
+					graaf.nodes[gn].group[n]=groupid;
+					cgn.push(graaf.nodes[gn].group[n-1])//will contain whole group with same groepid
 					do{
-						nodeGotAdded=0
-						for(nd in cgn){//iterating through this multiple times takes really long if it gets too big (n=4). start working with 'newly added' list.
-							nig=cgn[nd]//nodeingroup
+						if(n==4&&groupid>30){break}
+						newlyadded=0
+						for(nd in cgn){
+							nig=cgn[nd]
 							if(neighbours[nig]!=undefined){
 								for(num in neighbours[nig]){
-									partner=nodelookup[neighbours[nig][num]]
-									if(!(contains(cgn,partner.group[n-1]))){
-										if(matchcriteria(nodelookup[nig],partner,n)){
-											console.log("now adding",partner.group[n-1],"group size",cgn.length)
-											graaf.nodes[neighbours[nig][num]-1].group[n]=groupid
-											cgn.push(partner.group[n-1])
-											nodeGotAdded+=1
-										}else{
-											if(!(contains(oe,partner.group[n-1]))){oe.push(partner.group[n-1])}
+									buur=nodelookup[neighbours[nig][num]]//complete node
+									//if(graaf.nodes[neighbours[nig][num]-1].group[n]==0){
+										if(!(contains(cgn,buur.group[n-1]))){
+											if(matchcriteria(nodelookup[nig],buur,n)){
+												console.log("tier",n,"groepid",groupid,"now adding",buur.group[n-1],"group size",cgn.length)
+												graaf.nodes[neighbours[nig][num]-1].group[n]=groupid
+												cgn.push(buur.group[n-1])
+												newlyadded+=1
+											}else{
+												if(!(contains(oe,buur.group[n-1]))){oe.push(buur.group[n-1])}
+											}
 										}
-									}
+									//}
 								}
 							}
 						}
-					}while(nodeGotAdded)
+					}while(newlyadded>0)//fails if no new node was added.
 					currentlevel.nodes.push({"id":groupid,"children":cgn})
 					currentlevel.neighbours.push({"id":groupid,"edgesto":oe})
-					console.log(cgn)
+					console.log("tier",n,"groupid",groupid,"current group",cgn)
 					
-				}else{console.log("already added",node.id)}
+				}else{console.log("already added",graaf.nodes[gn].id,graaf.nodes[gn])}
 			}
 		}
 		//perhaps need new way to draw edges, so that source and target are evaluated on the same level. 
@@ -312,7 +312,7 @@ function determineZoomLevelGroups(){
 		if(n==2){level3=currentlevel}		
 		if(n==3){level4=currentlevel}		
 		if(n==4){level5=currentlevel}
-		cgn=[],oe=[];
+		cgn=[],oe=[],currentlevel={"nodes":[],"neighbours":[],"edges":[]};
 	}
 }
 
@@ -393,6 +393,6 @@ function exporteer(graaf){//lees data object, schrijf naar .dot file.
 
 function contains(array,object){
     var i = array.length;
-    while(i--){if(array[i]===object){return true}}
+    while(i--){if(array[i]==object){return true}}
     return false;
 }
