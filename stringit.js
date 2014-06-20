@@ -68,10 +68,7 @@ var graaf={"nodes":[],"edges":[]}, //{"nodes":[{}],"edges":[{},{},{}]}
 	maxLen=0,
 	r=30,//bounding box padding, measured from center of node
 	totalGroups,w,h,aspRatio,//newblerACE["1"].length-1
-	groupid=0,aantalnodes=0,
-	neighbours={},nodelookup=[],
-	level1,level2,level3,level4,level5,
-	currentlevel={"nodes":[],"neighbours":[],"edges":[]};
+	neighbours={},nodelookup=[];
     
 window.addEventListener('load',function(){
 	var bestand=document.getElementById('bestand')
@@ -106,20 +103,21 @@ function AMOSparse(regels,filename){
 	for(i=0;i<regels.length;i++){
 		if(regels[i].split("\t")[0]==="C"){//contigs
 			var eid=regels[i].split("\t")[1],
-				id=parseInt(eid.slice(6)).toString()
+				id=parseInt(regels[i].split("\t")[2])
 				sequence=regels[i].split("\t")[3],
-				lengte=sequence.length,
-				aantalnodes+=1
+				lengte=sequence.length;
 			if(parseInt(lengte)>maxLen){maxLen=parseInt(lengte)}
 			map=regels[i].split("\t")[4].slice(1,-1).split(",")//list of mapping, as strings
 			props=[]//{"id":id,"origin":1,"waarde":1}], add comparison between waarde and totaalwaarde
 			for(j in map){props.push({"id":id,"origin":parseInt(j)+1,"waarde":parseInt(map[j])})}	
 			nodegegevens={
-				"id":id,//origin
-				"group":[0,0,0,0,0],//groupid
-				"name":eid,"sequence":sequence,
-				"lengte":lengte,"origin":groepering(map,totalGroups),
-				"proportions":props
+				"id":id,//number of node in list,1-inclusive
+				"group":[id,0,0,0,0],//groupid
+				"name":eid,//contig name
+				"sequence":sequence,
+				"lengte":lengte,
+				"origin":groepering(map,totalGroups),//sample with largest contribution
+				"proportions":props//read mapping per sample
 				}
 			nodelookup[parseInt(id)]=nodegegevens
 			graaf.nodes.push(nodegegevens)
@@ -131,7 +129,7 @@ function AMOSparse(regels,filename){
 				t=regels[i].split("\t")[3];
 			if(adj[0]=="A"||adj[0]=="I"){s=[t,t=s][0]}
 			if(adj[0]=="I"||adj[0]=="O"){rc=1}else{rc=0}//not really necessary. If I want to use this, work with 2 checks: 1 flips both source and target, and the other just the target. Flipped twice=not flipped, and save flip yes/no per source/target
-			if(!(s>aantalnodes)&&!(t>aantalnodes)){//used to skip edges with references to unexisting nodes
+			if(s<=graaf.nodes.length&&t<=graaf.nodes.length){//used to skip edges with references to unexisting nodes
 				graaf.edges.push({"source":nodelookup[s],"target":nodelookup[t]})
 				neighbours[s]!=undefined?neighbours[s].push(t):neighbours[s]=[t]
 				neighbours[t]!=undefined?neighbours[t].push(s):neighbours[t]=[s]
@@ -140,6 +138,11 @@ function AMOSparse(regels,filename){
 		}
 	}
 	determineZoomLevelGroups()
+	//do not return graaf, but write a new graaf based on groupids, starting with n=4
+	//when node is clicked, it is selected.
+	//when mouse scrolls, selected nodes zoom in/out.
+	//n is checked, lowered/heightened by 1, and corresponding underlying nodes are expanded/collapsed
+		
 	return graaf
 }
 
@@ -232,8 +235,8 @@ function coordinates(originnummer){
 
 function matchcriteria(node,partner,n){
 	//case n=0 not necessary, because this is already assigned in the beginning.
-	if(n==1 && neighbours[node.id].length==2 && neighbours[partner.id].length==2){return true}
-	if(n==2 && node.origin==partner.origin){return true}
+	if(n==1 && neighbours[node.id].length<=2 && neighbours[partner.id].length<=2){return true}
+	if(n==2 && node.origin==partner.origin && node.origin!=0){return true}
 	if(n==3){
 		for(origin in node.proportions){
 			if(node.proportions[origin].waarde>=0.8*partner.proportions[origin].waarde && node.proportions[origin].waarde<=1.2*partner.proportions[origin].waarde){return true}else{break}
@@ -254,72 +257,52 @@ function lookupGroup(n,graafnodes,oeid){
 }
 	
 function determineZoomLevelGroups(){
-	for(n=0;n<=4;n++){
-		var groupid=0;
+	for(n=1;n<=4;n++){
+		var groupid=0
 		for(gn in graaf.nodes){
-			if(n==0){
+			if(graaf.nodes[gn].group[n]==0){//select unassigned node, put in new group, collect whole group
 				groupid+=1
-				graaf.nodes[gn].group[n]=parseInt(graaf.nodes[gn].id);
-			}else{
-				if(graaf.nodes[gn].group[n]==0){//select unassigned node, put in new group, collect whole group
-					var cgn=[],//nodes in current group (children)
-						oe=[],//(Outside Edges) nodes not in group that are connected to those that are
-						newlyadded=0
-					groupid+=1
-					graaf.nodes[gn].group[n]=groupid;
-					cgn.push(graaf.nodes[gn].group[n-1])//will contain whole group with same groepid
-					do{
-						if(n==4&&groupid>30){break}
-						newlyadded=0
-						for(nd in cgn){
-							nig=cgn[nd]
-							if(neighbours[nig]!=undefined){
-								for(num in neighbours[nig]){
-									buur=nodelookup[neighbours[nig][num]]//complete node
-									//if(graaf.nodes[neighbours[nig][num]-1].group[n]==0){
-										if(!(contains(cgn,buur.group[n-1]))){
-											if(matchcriteria(nodelookup[nig],buur,n)){
-												console.log("tier",n,"groepid",groupid,"now adding",buur.group[n-1],"group size",cgn.length)
-												graaf.nodes[neighbours[nig][num]-1].group[n]=groupid
-												cgn.push(buur.group[n-1])
-												newlyadded+=1
-											}else{
-												if(!(contains(oe,buur.group[n-1]))){oe.push(buur.group[n-1])}
-											}
-										}
-									//}
+				graaf.nodes[gn].group[n]=groupid
+				newNode=0
+				cgn=[graaf.nodes[gn].group[0]]
+				oe=[]
+				do{
+					newNode=0
+					for(nd in cgn){//gets filled with ids
+						if(neighbours[cgn[nd]]!=undefined){
+							for(num in neighbours[cgn[nd]]){
+								if(!(contains(cgn,neighbours[cgn[nd]][num]))){
+									if(matchcriteria(graaf.nodes[gn],nodelookup[neighbours[cgn[nd]][num]],n)){//id of neighbouring node
+										cgn.push(parseInt(neighbours[cgn[nd]][num]))
+										graaf.nodes[neighbours[cgn[nd]][num]-1].group[n]=groupid
+										newNode+=1
+									}else{
+										oe.push(parseInt(neighbours[cgn[nd]][num]))
+									}
 								}
 							}
 						}
-					}while(newlyadded>0)//fails if no new node was added.
-					currentlevel.nodes.push({"id":groupid,"children":cgn})
-					currentlevel.neighbours.push({"id":groupid,"edgesto":oe})
-					console.log("tier",n,"groupid",groupid,"current group",cgn)
-					
-				}else{console.log("already added",graaf.nodes[gn].id,graaf.nodes[gn])}
+					}
+				}while(newNode>0)
+				//cgn is completely filled here here
+				console.log("tier",n,"groupid",groupid,"found all partners:",cgn)
 			}
 		}
-		//perhaps need new way to draw edges, so that source and target are evaluated on the same level. 
-		//Here, we evaluate for the highest n, but that might nog be necessary
-		for(oe in currentlevel.neighbours){
-			for(buur in oe.edgesto){
-				currentlevel.edges.push({"source":oe.id,"target":lookupGroup(n,currentlevel.nodes,buur)})
-			}
-		}
-		
-		if(n==0){level1=currentlevel}			
-		if(n==1){level2=currentlevel}			
-		if(n==2){level3=currentlevel}		
-		if(n==3){level4=currentlevel}		
-		if(n==4){level5=currentlevel}
-		cgn=[],oe=[],currentlevel={"nodes":[],"neighbours":[],"edges":[]};
 	}
 }
+						
+//graaf.nodes[x]=nodelookup[x+1]
+//graaf.nodes[x].id==graaf.nodes[x].group[0]==x+1
+//nodelookup takes id and returns whole node
+//neighbours takes id and returns all ids of neighbours
+				
+				
+
 
 
 function makeGraaf(graaf){
 	aspRatio=screen.width/screen.height
-	h=0.4*aantalnodes+800
+	h=0.4*graaf.nodes.length+800
 	w=aspRatio*h	
 	
 	var svg = d3.select("body").append("svg")
