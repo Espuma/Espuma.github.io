@@ -68,6 +68,7 @@ var graaf={"nodes":[],"edges":[]}, //{"nodes":[{}],"edges":[{},{},{}]}
 	maxLen=0,
 	r=30,//bounding box padding, measured from center of node
 	totalGroups,w,h,aspRatio,//newblerACE["1"].length-1
+	level1=[],level2=[],level3=[],level4=[],
 	neighbours={},nodelookup=[];
     
 window.addEventListener('load',function(){
@@ -171,7 +172,7 @@ function groepering(mappingstr,totalGroups){
 //if no consensus is reached anywhere, assign groep 0
 //lets skip the fiddling on this exact number.
 
-function Newblerparse(regels,filename){
+function Newblerparse(regels,filename){//can be removed if Newbler2stringit is rewritten. Sunday project.
 	totalGroups=newblerACE["1"].length-1
 	for (i=0;i<regels.length;i++){
 		if(!isNaN(parseInt(regels[i].split("\t")[0]))){//collect nodes
@@ -284,11 +285,31 @@ function determineZoomLevelGroups(){
 						}
 					}
 				}while(newNode>0)
-				//cgn is completely filled here here
-				console.log("tier",n,"groupid",groupid,"found all partners:",cgn)
+				if(n==1){level1.push({"id":groupid,"children":cgn,"edges":oe})}
+				if(n==2){level2.push({"id":groupid,"children":cgn,"edges":oe})}
+				if(n==3){level3.push({"id":groupid,"children":cgn,"edges":oe})}
+				if(n==4){level4.push({"id":groupid,"children":cgn,"edges":oe})}
+				//cgn is filled with references to n=0. Use filled levelXs to rebuild graph with n-1 references.
+				//for link in oe
+				//find groupid[n-1]
+				
+				
+				if(cgn.length>1){console.log("tier",n,"groupid",groupid,"found all partners:",cgn)}
 			}
 		}
 	}
+	//build nested tiers here
+	
+	//stringit starts displaying only nodes from n=4
+	//levelX.nodes needs to contain all levelX nodes, and all edges between them
+	//levelX nodes are easy and already connected.
+	//levelX edges are based on oe
+	//oe references all the links that a node has
+	
+	
+	
+	
+	
 }
 						
 //graaf.nodes[x]=nodelookup[x+1]
