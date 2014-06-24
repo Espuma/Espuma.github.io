@@ -26,24 +26,24 @@ window.addEventListener('load',function(){
 });
 
 function doEverything(event){
-loadFile(event,parseFileInput);
-//why is this function even here? can probably be merged with the eventlistener
+	loadFile(event,parseFileInput);
+	//why is this function even here? can probably be merged with the eventlistener
 }
 
-function loadFile(ev1,callback){ //load file, return contents
-	var loaded=ev1.target.files[0]
+function loadFile(ev,callback){ //load file, return contents
+
+	var loaded=ev.target.files[0]
 	var reader=new FileReader();
+	reader.readAsText(loaded)
 	reader.onload=function(){
 		var fileContent=event.target.result;
-		callback(fileContent,makeGraaf)};//parseFileInput gets called here
-	reader.readAsText(loaded)
+		callback(fileContent,makeGraaf)//parseFileInput gets called here
+	};
+	console.log(reader)
 }//end loadFile
 
-function parseFileInput(content,callback){
-	regels=content.split("\n")
-	var graaf=fileparse(regels)
-	//else error/exception
-	callback(graaf)
+function parseFileInput(content,callback){//can be merged with fileparse()
+	callback(fileparse(content.split("\n")))
 }
 
 function fileparse(regels){
@@ -156,14 +156,13 @@ function determineTiers(parsedgraaf){
 		}
 	}
 	//first rebuild nodelookup to incorporate all groupids.
-	
 	tiers={0:parsedgraaf,1:{nodes:[],edges:[]},2:{nodes:[],edges:[]},3:{nodes:[],edges:[]},4:{nodes:[],edges:[]}}
 	for(gr in level1){
 		groep=level1[gr]
 		children=[]//based on groep.children, but recalculated to reference n-1
 		tiers[1].nodes.push({"id":groep.id,"children":children})
 		for(oe in groep.edges){
-			edge=groep.edges[oe]//recalculate to reference groupid, not node id
+			edge=groep.edges[oe]// {}recalculate to reference groupid, not node id
 			tiers[1].edges.push({"source":groep.id,"target":edge})
 		}
 	}//for level[n] with 1<=n<=4
