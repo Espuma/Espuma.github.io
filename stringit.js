@@ -57,7 +57,7 @@ function fileparse(regels){
 				totalReads=0;
 			if(parseInt(lengte)>maxLen){maxLen=parseInt(lengte)}
 			map=regels[i].split("\t")[4].slice(1,-1).split(",")//list of mapping, as strings
-			props=[]//{"id":id,"origin":1,"waarde":1}], add comparison between waarde and totaalwaarde
+			props=[]
 			for(j in map){totalReads+=parseInt(map[j])}	
 			if(totalReads>0){
 				for(j in map){
