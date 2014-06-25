@@ -1,10 +1,4 @@
 //http://bl.ocks.org/mbostock/1093130  click functionality I want, simple on/off toggle
-//http://jsfiddle.net/mdml/Q7uNz data structure I want, simple graph json
-
-//origin=for gravity
-//group=ID for aggregation
-//id=group[0]=for nodelookup purposes
-//reads and their ratios are used to determine both group and origin
 
 //I might want an option (in UI) at n=5 to remove any node that has no children (remove all single-node-subgraphs)
 
@@ -12,31 +6,25 @@
 //when mouse scrolls, selected nodes zoom in/out.
 //n is checked, lowered/heightened by 1, and corresponding underlying nodes are expanded/collapsed
 	
-var graaf={"nodes":[],"edges":[]}, //{"nodes":[{}],"edges":[{},{},{}]}
-	maxLen=0,
-	r=30,//bounding box padding, measured from center of node
-	totalGroups,w,h,aspRatio,//newblerACE["1"].length-1
-	level1=[],level2=[],level3=[],level4=[],
+var maxLen=0,
+	totalGroups,w,h,aspRatio,
 	neighbours={},nodelookup=[];
     
 window.addEventListener('load',function(){
 	var bestand=document.getElementById('bestand')
 	bestand.addEventListener('change',readFile,false)
-	//only doEverything once both files (graph&read map) are selected
 });
 
 function readFile(ev){
-	var loaded=ev.target.files[0]
 	var reader=new FileReader()
-	reader.readAsText(loaded)
-	reader.onload=function(){
-		fileContent=event.target.result
-		makeGraaf(handleContent(fileContent.split("\n")))
-	}
+	reader.readAsText(ev.target.files[0])
+	reader.onload=function(){handleContent(event.target.result.split("\n"))}
 }
 
 function handleContent(regels){
-	totalGroups=regels[0].split("\t")[4].slice(1,-1).split(",").length//total number of groups
+	totalGroups=regels[0].split("\t")[4].slice(1,-1).split(",").length,//total number of groups
+	origraaf={nodes:[],edges:[]}
+	
 	for(i=0;i<regels.length;i++){
 		if(regels[i].split("\t")[0]==="C"){//contigs
 			var eid=regels[i].split("\t")[1],
@@ -65,26 +53,26 @@ function handleContent(regels){
 				"proportions":props//read mapping per sample
 			}
 			nodelookup[parseInt(id)]=nodegegevens
-			graaf.nodes.push(nodegegevens)
+			origraaf.nodes.push(nodegegevens)
 			
 		}
 		if(regels[i].split("\t")[0]==="E"){//edges
 			var s=parseInt(regels[i].split("\t")[2]),
 				t=parseInt(regels[i].split("\t")[3]);
-			if(s<=graaf.nodes.length&&t<=graaf.nodes.length){//used to skip edges with references to unexisting nodes
-				graaf.edges.push({"source":nodelookup[s],"target":nodelookup[t]})
+			if(s<=origraaf.nodes.length&&t<=origraaf.nodes.length){//used to skip edges with references to unexisting nodes
+				origraaf.edges.push({"source":nodelookup[s],"target":nodelookup[t]})
 				neighbours[s]!=undefined?neighbours[s].push(t):neighbours[s]=[t]
 				neighbours[t]!=undefined?neighbours[t].push(s):neighbours[t]=[s]
 			}
 		}
 	}
-	return determineTiers(graaf)
+	return determineTiers(origraaf)
 }
 
 function groepering(mappingstr,totalGroups){
-	biggest=0
-	biggesti=0
-	totalreads=0
+	var biggest=0,
+		biggesti=0,
+		totalreads=0;
 	for(k in mappingstr){
 		totalreads+=parseInt(mappingstr[k])
 		if(parseInt(mappingstr[k])>biggest){
@@ -93,18 +81,16 @@ function groepering(mappingstr,totalGroups){
 		}
 	}
 	if((biggest/totalreads)>(1.5/totalGroups)){return biggesti+1}else{return 0}
-	//now simply returns the largest group.
-		
-//for gravity purposes, only nodes with an overwhelming amount of a single read get a groep assigned. 
-//1.5/totalGroups, if there is only one origin that has such a high value.
-//If there are more with that value, recalculate again with that number for totalGroups
-//if no consensus is reached anywhere, assign groep 0
-//lets skip the fiddling on this exact number.
-
+	//need to add check all groups if > 1.5/totalGroups, not only biggest
+	//If there are more with that value, recalculate again with that number for totalGroups
+	//if no consensus is reached anywhere, assign groep 0
+	//lets skip the fiddling on this exact number.
 }
 	
 function determineTiers(parsedgraaf){
-	var groupid=0
+	var groupid=0,
+		level1=[],level2=[],level3=[],level4=[];
+	
 	for(n=1;n<=4;n++){
 		for(gn in parsedgraaf.nodes){
 			if(parsedgraaf.nodes[gn].group[n]==0){//select unassigned node, put in new group, collect whole group
@@ -135,19 +121,14 @@ function determineTiers(parsedgraaf){
 				if(n==2){level2.push({"id":groupid,"children":cgn,"edges":oe})}
 				if(n==3){level3.push({"id":groupid,"children":cgn,"edges":oe})}
 				if(n==4){level4.push({"id":groupid,"children":cgn,"edges":oe})}
-				//cgn is filled with references to n=0. Use filled levelXs to rebuild graph with n-1 references.
-				//for link in oe
-				//find groupid[n-1]
-				
-				
+
 				if(cgn.length>1){console.log("tier",n,"groupid",groupid,"found all partners:",cgn)}
 			}
 		}
 	}
 	
 	for(nd in parsedgraaf.nodes){nodelookup[parsedgraaf.nodes[nd].id]=parsedgraaf.nodes[nd]}
-		
-	//first rebuild nodelookup to incorporate all groupids.
+
 	tiers={0:parsedgraaf,1:{nodes:[],edges:[]},2:{nodes:[],edges:[]},3:{nodes:[],edges:[]},4:{nodes:[],edges:[]}}
 	for(n=1;n<=4;n++){
 	levelx=eval("level"+n)
@@ -157,23 +138,15 @@ function determineTiers(parsedgraaf){
 			for(child in groep.children){//based on groep.children, but recalculated to reference n-1
 				children.push(nodelookup[groep.children[child]].group[n-1])
 			}
-			tiers[n].nodes.push({"id":groep.id,"children":children})
+			tiers[n].nodes.push({"id":groep.id,"children":children})//name,sequence,lengte,proportions are missing
 			for(oe in groep.edges){
 				buur=groep.edges[oe]
 				edge=nodelookup[buur].group[n]
 				tiers[n].edges.push({"source":groep.id,"target":edge})
 			}
-		}//for level[n] with 1<=n<=4
+		}
 	}
-
-
-	
-	return tiers
-						
-//graaf.nodes[x]=nodelookup[x+1]
-//graaf.nodes[x].id==graaf.nodes[x].group[0]==x+1
-//nodelookup takes id and returns whole node
-
+	return makeGraaf(tiers)
 }
 
 function contains(array,object){
@@ -183,25 +156,22 @@ function contains(array,object){
 }
 
 function matchcriteria(node,partner,n){
-	//case n=0 not necessary, because this is already assigned in the beginning.
 	if(n==1 && neighbours[node.id].length<=2 && neighbours[partner.id].length<=2){return true}
 	if(n==2 && node.origin==partner.origin && node.origin!=0){return true}
-	if(n==3){
+	if(n==3){//n=3 does not take over whole content of n=2 yet, because of different selection criteria.
 		for(origin in node.proportions){
 			if(node.proportions[origin].waarde>=0.8*partner.proportions[origin].waarde && node.proportions[origin].waarde<=1.2*partner.proportions[origin].waarde){return true}else{break}
-		//only considers waarde, not waarde/total
 		}
 	}
 	if(n==4){return true}
-		//all partners are eligible for this group, making a group for every set of connected nodes
 	return false
 }
 
 function makeGraaf(graaf){
-	n=0//select different tiers
+	var n=0//select different tiers
 	aspRatio=screen.width/screen.height
 	h=0.4*graaf[n].nodes.length+800
-	w=aspRatio*h	
+	w=aspRatio*h
 	
 	var svg = d3.select("body").append("svg")
 		.attr("id", "graafsvg")
@@ -262,6 +232,8 @@ function makeGraaf(graaf){
 		.attr("fill", function(d) { return color(d.data.origin)});
 									
 	function tick(e) {
+		var r=30
+		
 		node.each(gravity(e.alpha))//again better for smallAMOStests
 		
 		node.attr("cx",function(d){return d.x=Math.max(r,Math.min(w-r,d.x));})
