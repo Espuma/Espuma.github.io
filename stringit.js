@@ -134,11 +134,13 @@ function determineTiers(parsedgraaf){
 	levelx=eval("level"+n)
 		for(gr in levelx){
 			groep=levelx[gr]
-			children=[]
+			onderliggend=[]
 			for(child in groep.children){//based on groep.children, but recalculated to reference n-1
-				children.push(nodelookup[groep.children[child]].group[n-1])
+				onderliggend.push(nodelookup[groep.children[child]].group[n-1])
 			}
-			tiers[n].nodes.push({"id":groep.id,"children":children})//name,sequence,lengte,proportions are missing
+			props=[{id:groep.id,waarde:1}]
+			//go through all props of all children and aggregate results.
+			tiers[n].nodes.push({id:groep.id,children:onderliggend,proportions:props})//name,sequence,lengte,proportions are missing
 			for(oe in groep.edges){
 				buur=groep.edges[oe]
 				edge=nodelookup[buur].group[n]
@@ -188,8 +190,8 @@ function makeGraaf(graaf){
 		.size([w,h])
 		.charge(-30)
 		.gravity(0)
-		.linkDistance(25)//make them stick together if the level above indicates that they would have the same group, and more loose if they are different.
-		.linkStrength(0.1)//smallAMOStests works better this way
+		.linkDistance(25)//needs to vary with group id
+		.linkStrength(0.1)
 		.on("tick", tick)
 		.start();
 
@@ -214,16 +216,6 @@ function makeGraaf(graaf){
 	
 	var color = d3.scale.category10();
 	
-	function pieChart(proportions){
-	totaal=0
-	for(j in proportions){
-		totaal+=proportions[j].waarde
-	}
-	if(totaal>0){return pie(proportions)}
-	else{props={id:proportions[0].id,origin:totalGroups+1,waarde:1};return props}
-	}
-		
-	
 	node.selectAll("path")
 		.data(function(d) {return pie(d.proportions)})
 		.enter()
@@ -234,7 +226,7 @@ function makeGraaf(graaf){
 	function tick(e) {
 		var r=30
 		
-		node.each(gravity(e.alpha))//again better for smallAMOStests
+		node.each(gravity(e.alpha))
 		
 		node.attr("cx",function(d){return d.x=Math.max(r,Math.min(w-r,d.x));})
 			.attr("cy",function(d){return d.y=Math.max(r,Math.min(h-r,d.y));})
@@ -259,19 +251,14 @@ function gravity(alpha) {
 		d.x+=(coordinates(d.origin)[0]-d.x)*a;
 		d.y+=(coordinates(d.origin)[1]-d.y)*a;
   }
-}//gravity groups based on origin, calculated as the sample with the most reads (above a certain value)
+}//gravity groups based on origin
 
 function coordinates(originnummer){
 	if(originnummer==0){return [0.5*w,0.5*h]}else{//either this, or they start floating...
 		var cx=0.5*w+0.2*aspRatio*w*Math.round(1000*Math.sin(((1+originnummer*2)*Math.PI)/totalGroups))/1000
 		var cy=0.5*h+0.2*h*Math.round(1000*Math.cos((1+originnummer*2*Math.PI)/totalGroups))/1000
 		return [cx,cy]
-	}//not working perfectly, but at least it helps.
+	}//is still skewed slightly past 45 degrees.
 }
 
-function exporteer(graaf){//lees data object, schrijf naar .dot file.
-	var dotbestand="digraph:{\n"
-	for (regel in graaf.nodes){dotbestand.push(regel.id+" [comment=\""+regel.sequence+"\",group=\""+regel.group+"\"]\n")}
-	for (regel in graaf.edges){dotbestand.push(regel.source+" -> "+regel.target+"[comment=\"sStart=\""+regel.sStart+"\",sEnd=\""+regel.sEnd+"\",tStart=\""+regel.tStart+"\",tEnd=\""+regel.tEnd+"\",revcomp=\""+regel.revcomp+"\"]\n")}
-	dotbestand+="}"
-}
+function exporteer(graaf){/*needs to be redone*/}
