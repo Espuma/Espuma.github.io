@@ -1,4 +1,4 @@
-//http://bl.ocks.org/mbostock/1093130  click functionality I want, simple on/off toggle
+//http://bl.ocks.org/GerHobbelt/3104394  2-tiered node aggregation, looks very nice!
 
 //I might want an option (in UI) at n=5 to remove any node that has no children (remove all single-node-subgraphs)
 
@@ -88,7 +88,7 @@ function groepering(mappingstr,totalGroups){
 }
 	
 function determineTiers(parsedgraaf){
-	var groupid=0,
+	var groupid=parsedgraaf.nodes.length,
 		level1=[],level2=[],level3=[],level4=[];
 	
 	for(n=1;n<=4;n++){
@@ -130,21 +130,30 @@ function determineTiers(parsedgraaf){
 	for(nd in parsedgraaf.nodes){nodelookup[parsedgraaf.nodes[nd].id]=parsedgraaf.nodes[nd]}
 
 	tiers={0:parsedgraaf,1:{nodes:[],edges:[]},2:{nodes:[],edges:[]},3:{nodes:[],edges:[]},4:{nodes:[],edges:[]}}
+	//needs to be put just in tiers.nodes and tiers.edges, no subdivision of tiers. save list of node per tier for specification of which nodes to display.
 	for(n=1;n<=4;n++){
+	console.log("tier:",n)
 	levelx=eval("level"+n)
 		for(gr in levelx){
 			groep=levelx[gr]
 			onderliggend=[]
 			for(child in groep.children){//based on groep.children, but recalculated to reference n-1
-				onderliggend.push(nodelookup[groep.children[child]].group[n-1])
+				if(!(contains(onderliggend,nodelookup[groep.children[child]].group[n-1]))){onderliggend.push(nodelookup[groep.children[child]].group[n-1])}
 			}
-			props=[{id:groep.id,waarde:1}]
+			props=[{id:groep.id,origin:1,waarde:100},{id:groep.id,origin:2,waarde:0}]
 			//go through all props of all children and aggregate results.
 			tiers[n].nodes.push({id:groep.id,children:onderliggend,proportions:props})//name,sequence,lengte,proportions are missing
+			console.log("	node:",groep.id,onderliggend,props)
+			pgn=[]//previous group neighbours
 			for(oe in groep.edges){
 				buur=groep.edges[oe]
 				edge=nodelookup[buur].group[n]
-				tiers[n].edges.push({"source":groep.id,"target":edge})
+				if(!(contains(pgn,edge))){pgn.push(edge)}
+			}
+			for(ed in pgn){
+				buur=pgn[ed]
+				console.log("		edge:",groep.id,buur)
+				tiers[n].edges.push({"source":groep.id,"target":buur})
 			}
 		}
 	}
@@ -172,7 +181,7 @@ function matchcriteria(node,partner,n){
 function makeGraaf(graaf){
 	var n=0//select different tiers
 	aspRatio=screen.width/screen.height
-	h=0.4*graaf[n].nodes.length+800
+	h=0.4*graaf[0].nodes.length+800
 	w=aspRatio*h
 	
 	var svg = d3.select("body").append("svg")
@@ -185,24 +194,23 @@ function makeGraaf(graaf){
 		.attr("id","veld")
 	
 	var force = d3.layout.force()
-		.nodes(graaf[n].nodes)
-		.links(graaf[n].edges)
-		.size([w,h])
-		.charge(-30)
+		.nodes(graaf[0].nodes)
+		.links(graaf[0].edges)
+		.charge(-60)
 		.gravity(0)
-		.linkDistance(25)//needs to vary with group id
+		.linkDistance(25)//needs to vary with group[n-1]
 		.linkStrength(0.1)
 		.on("tick", tick)
 		.start();
 
 	var edge = svg.selectAll(".link")
 		.attr("id","edges")
-		.data(graaf[n].edges)
+		.data(graaf[0].edges)
 		.enter().append("line")
 		.attr("class", "link");
 
 	var node = svg.selectAll(".node")
-		.data(graaf[n].nodes,function(d){return d.id})
+		.data(graaf[0].nodes,function(d){return d.id})
 		.enter().append("g")
 		.attr("class", "node")
 		.call(force.drag);
@@ -221,7 +229,8 @@ function makeGraaf(graaf){
 		.enter()
 		.append("path")
 		.attr("d",arc)
-		.attr("fill", function(d) { return color(d.data.origin)});
+		.attr("fill", function(d) {if(n==0){return color(d.data.origin)}else{return color(4)}})
+		.attr("stroke",12);
 									
 	function tick(e) {
 		var r=30
