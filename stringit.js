@@ -5,6 +5,8 @@
 //when node is clicked, it is selected.
 //when mouse scrolls, selected nodes zoom in/out.
 //n is checked, lowered/heightened by 1, and corresponding underlying nodes are expanded/collapsed
+
+//use css to make border elements
 	
 var maxLen=0,
 	totalGroups,w,h,aspRatio,
