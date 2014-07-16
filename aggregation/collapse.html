@@ -17,14 +17,112 @@ path.hlink {
     </style>
   </head>
   <body>
+  <input type="file" id="bestand"></input>
     <script type="text/javascript">
-var width = 960,        // svg width
-    height = 600,       // svg height
+var width = 1500,        // svg width
+    height = 1000,       // svg height
     dr = 4,             // default point radius
     off = 15,           // cluster hull offset
     expand = {},        // expanded clusters
     data, net, force, force2, hullg, hull, linkg, helper_linkg, link, hlink, nodeg, helper_nodeg, node, hnode,
     debug = 0; // 0: disable, 1: do not use, 2: only force2,no mousetracking
+var nodelookup=[],neighbours={}
+
+  
+window.addEventListener('load',function(){
+	var bestand=document.getElementById('bestand')
+	bestand.addEventListener('change',readFile,false)
+});
+
+function readFile(ev){
+	var reader=new FileReader()
+	reader.readAsText(ev.target.files[0])
+	reader.onload=function(){handleContent(event.target.result.split("\n"))}
+}
+
+function handleContent(regels){
+	totalGroups=regels[0].split("\t")[4].slice(1,-1).split(",").length,//total number of groups
+	origraaf={nodes:[],links:[]}
+	
+	for(i=0;i<regels.length;i++){
+		if(regels[i].split("\t")[0]==="C"){//contigs
+			var eid=regels[i].split("\t")[1],
+				id=parseInt(regels[i].split("\t")[2])
+				sequence=regels[i].split("\t")[3],
+				lengte=sequence.length,
+				totalReads=0;
+			//if(parseInt(lengte)>maxLen){maxLen=parseInt(lengte)}
+			map=regels[i].split("\t")[4].slice(1,-1).split(",")//list of mapping, as strings
+			props=[]
+			for(j in map){totalReads+=parseInt(map[j])}	
+			if(totalReads>0){
+				for(j in map){
+					props.push({"id":id,"origin":parseInt(j)+1,"waarde":parseInt(map[j])})
+				}
+			}else{
+				props.push({"id":id,"origin":totalGroups+1,"waarde":1})
+			}
+			nodegegevens={
+				"id":id,//number of node in list,1-inclusive
+				"group":[id,0,0,0,0],//groupid
+				"name":eid,//contig name
+				"sequence":sequence,
+				"lengte":lengte,
+				"origin":groepering(map,totalGroups),//sample with largest contribution
+				"proportions":props//read mapping per sample
+			}
+			nodelookup[parseInt(id)]=nodegegevens
+			origraaf.nodes.push(nodegegevens)
+			
+		}
+		if(regels[i].split("\t")[0]==="E"){//edges
+			var s=parseInt(regels[i].split("\t")[2]),
+				t=parseInt(regels[i].split("\t")[3]);
+			if(s<=origraaf.nodes.length&&t<=origraaf.nodes.length){//used to skip edges with references to unexisting nodes
+				origraaf.links.push({"source":nodelookup[s],"target":nodelookup[t]})
+				neighbours[s]!=undefined?neighbours[s].push(t):neighbours[s]=[t]
+				neighbours[t]!=undefined?neighbours[t].push(s):neighbours[t]=[s]
+			}
+		}
+	}
+	data=origraaf
+	
+	  data.helpers = {left: {}, right: {}};
+
+  hullg = vis.append("g");
+  if (debug) {
+    linkg = vis.append("g");
+    helper_nodeg = vis.append("g");
+  }
+  helper_linkg = vis.append("g");
+  nodeg = vis.append("g");
+  if (debug == 1) {
+    node = vis.append("g").append("circle")
+        .attr("class", "center-of-mass")
+        .attr("r", 10);
+  }
+
+  init();
+
+  vis.attr("opacity", 1e-6)
+    .transition()
+    .duration(1000)
+    .attr("opacity", 1);
+}
+
+function groepering(mappingstr,totalGroups){
+	var biggest=0,
+		biggesti=0,
+		totalreads=0;
+	for(k in mappingstr){
+		totalreads+=parseInt(mappingstr[k])
+		if(parseInt(mappingstr[k])>biggest){
+			biggest=parseInt(mappingstr[k])
+			biggesti=parseInt(k)
+		}
+	}
+	if((biggest/totalreads)>(1.5/totalGroups)){return biggesti+1}else{return 0}
+}
 
 var curve = d3.svg.line()
   .interpolate("cardinal-closed")
@@ -265,6 +363,7 @@ var vis = body.append("svg")
 var pathgen = d3.svg.line().interpolate("basis");
 
 //collects data from json file.
+/*
 d3.json("miserables.json", function(json) {
   /*{
     nodes:[{
@@ -274,7 +373,7 @@ d3.json("miserables.json", function(json) {
         "source" : 1,       // nodes[] index (number; is immediately converted to direct nodes[index] reference)
         "target" : 0,       // nodes[] index (number; is immediately converted to direct nodes[index] reference)
 	}]
-  }*/
+  }
   data = json;
   for (var i=0; i<data.links.length; ++i) {
     o = data.links[i];
@@ -303,7 +402,7 @@ d3.json("miserables.json", function(json) {
     .transition()
     .duration(1000)
     .attr("opacity", 1);
-});
+}); */
 
 //starts network
 function init() {
@@ -339,7 +438,7 @@ function init() {
         var n1 = l.source, n2 = l.target,
             g1 = n1.group_data || n1, g2 = n2.group_data || n2,
             n1_is_group = n1.size || 0, n2_is_group = n2.size || 0,
-            rv = 2;
+            rv = 300;
         // larger distance for bigger groups:
         // both between single nodes and _other_ groups (where size of own node group still counts),
         // and between two group nodes.
@@ -394,7 +493,7 @@ function init() {
   This way, we also have the freedom to apply a completely different force field setup to the helpers (no gravity
   as it doesn't make sense for helpers, different charge values, etc.).
   */
-  var force2 = d3.layout.force()
+  force2 = d3.layout.force()
       .nodes(net.helper_nodes)
       .links(net.helper_links)
       .size([width, height])
@@ -407,7 +506,7 @@ function init() {
           return 20;
         return 1;
       })
-      .gravity(0.0)   // just a tad of gravity to help keep those curvy buttocks decent
+      .gravity(0.0)   // just a tad of gravidy to help keep those curvy buttocks decent
       .charge(function(d, i) {
         // helper nodes have a medium-to-high charge, depending on the number of links the related force link represents.
         // Hence bundles of links fro A->B will have helper nodes with huge charges: better spreading of the link paths.

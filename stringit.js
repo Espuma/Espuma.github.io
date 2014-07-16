@@ -8,9 +8,9 @@
 
 //use css to make border elements
 	
-var maxLen=0,tiers,
-	totalGroups,w,h,aspRatio,lsize=[],
-	neighbours={},nodelookup=[],currentNodes=[];
+var maxLen=0,
+	totalGroups,w,h,aspRatio,
+	neighbours={},nodelookup=[];
     
 window.addEventListener('load',function(){
 	var bestand=document.getElementById('bestand')
@@ -92,8 +92,6 @@ function groepering(mappingstr,totalGroups){
 function determineTiers(parsedgraaf){
 	var groupid=parsedgraaf.nodes.length,
 		level1=[],level2=[],level3=[],level4=[];
-	lsize=[groupid,0,0,0,0]
-	tiers={nodes:[],edges:[],sizes:[]}
 	
 	for(n=1;n<=4;n++){
 		for(gn in parsedgraaf.nodes){
@@ -121,65 +119,47 @@ function determineTiers(parsedgraaf){
 						}
 					}
 				}while(newNode>0)
-				lsize[n]+=1
-				nodelookup[groupid]={"id":groupid,"children":cgn,"edges":oe}
+				if(n==1){level1.push({"id":groupid,"children":cgn,"edges":oe})}
+				if(n==2){level2.push({"id":groupid,"children":cgn,"edges":oe})}
+				if(n==3){level3.push({"id":groupid,"children":cgn,"edges":oe})}
+				if(n==4){level4.push({"id":groupid,"children":cgn,"edges":oe})}
 
 				if(cgn.length>1){console.log("tier",n,"groupid",groupid,"found all partners:",cgn)}
 			}
 		}
 	}
-	num=1
-	for(i=0;i<=4;i++){
-		tiers.sizes[i]=[num,(num+=lsize[i])-1]
-	}
 	
 	for(nd in parsedgraaf.nodes){nodelookup[parsedgraaf.nodes[nd].id]=parsedgraaf.nodes[nd]}
 
-	for(nd in nodelookup){
-		groep=nodelookup[nd]
-		for(t in tiers.sizes){
-			if(nd>=tiers.sizes[t][0]&&nd<=tiers.sizes[t][1]){n=t}
-		}
-		console.log("tier:",n)
-		onderliggend=[]
-		for(child in groep.children){//based on groep.children, but recalculated to reference n-1
-			if(!(contains(onderliggend,nodelookup[groep.children[child]].group[n-1]))){onderliggend.push(nodelookup[groep.children[child]].group[n-1])}
-		}
-		props=[{id:groep.id,origin:1,waarde:100}]
-		//go through all props of all children and aggregate results.
-		tiers.nodes.push({tier:n,id:groep.id,children:onderliggend,proportions:props})//name,sequence,lengte,proportions are missing
-		console.log("	node:",groep.id,onderliggend,props)
-		pgn=[]//previous group neighbours
-		for(oe in groep.edges){
-			buur=groep.edges[oe]
-			edge=nodelookup[buur].group[n]
-			if(!(contains(pgn,edge))){pgn.push(edge)}
-		}
-		for(ed in pgn){
-			buur=pgn[ed]
-			console.log("		edge:",groep.id,buur)
-			tiers.edges.push({source:groep.id,target:buur,tier:n})
-		}
-	}
-	tn=4
-	graaf={nodes:[],edges:[]}
-	for(i=tiers.sizes[tn][0];i<=tiers.sizes[tn][1];i++){
-		graaf.nodes.push(nodelookup[tiers.nodes[i-1].id])
-		if(tiers.nodes[i-1].tier==0){
-			for(j in neighbours[tiers.nodes[i-1].id]){
-				buur=neighbours[tiers.nodes[i-1].id][j]
-				if(buur>tiers.nodes[i-1].id){
-					graaf.edges.push({source:nodelookup[tiers.nodes[i-1].id],target:nodelookup[buur]})
-				}
+	tiers={0:parsedgraaf,1:{nodes:[],edges:[]},2:{nodes:[],edges:[]},3:{nodes:[],edges:[]},4:{nodes:[],edges:[]}}
+	//needs to be put just in tiers.nodes and tiers.edges, no subdivision of tiers. save list of node per tier for specification of which nodes to display.
+	for(n=1;n<=4;n++){
+	console.log("tier:",n)
+	levelx=eval("level"+n)
+		for(gr in levelx){
+			groep=levelx[gr]
+			onderliggend=[]
+			for(child in groep.children){//based on groep.children, but recalculated to reference n-1
+				if(!(contains(onderliggend,nodelookup[groep.children[child]].group[n-1]))){onderliggend.push(nodelookup[groep.children[child]].group[n-1])}
 			}
-		}else{
-			for(j in tiers.nodes[i-1].children){
-				buur=tiers.nodes[i-1].children[j]
-				//everything fails right around here
-				
+			props=[{id:groep.id,origin:1,waarde:100},{id:groep.id,origin:2,waarde:0}]
+			//go through all props of all children and aggregate results.
+			tiers[n].nodes.push({id:groep.id,children:onderliggend,proportions:props})//name,sequence,lengte,proportions are missing
+			console.log("	node:",groep.id,onderliggend,props)
+			pgn=[]//previous group neighbours
+			for(oe in groep.edges){
+				buur=groep.edges[oe]
+				edge=nodelookup[buur].group[n]
+				if(!(contains(pgn,edge))){pgn.push(edge)}
+			}
+			for(ed in pgn){
+				buur=pgn[ed]
+				console.log("		edge:",groep.id,buur)
+				tiers[n].edges.push({"source":groep.id,"target":buur})
+			}
+		}
 	}
-	
-	return drawGraph(graaf)
+	return makeGraaf(tiers)
 }
 
 function contains(array,object){
@@ -200,15 +180,10 @@ function matchcriteria(node,partner,n){
 	return false
 }
 
-function changeGraaf(graaf,prev){
-//this will be the function that handles changing graaf based on scrolling and its previous state.
-//nodes will be built from gathering nodes in same group
-//edges can be collected from neighbours
-}
-
-function drawGraph(graaf){
+function makeGraaf(graaf){
+	var n=0//select different tiers
 	aspRatio=screen.width/screen.height
-	h=0.4*tiers.sizes[0][1]+800
+	h=0.4*graaf[0].nodes.length+800
 	w=aspRatio*h
 	
 	var svg = d3.select("body").append("svg")
@@ -216,13 +191,13 @@ function drawGraph(graaf){
 		.attr("height","90%")
 		.attr("width","100%")
 		.attr("viewBox", "0 0 "+w+" "+h)
-		//.attr("preserveAspectRatio", "xMidYMid meet")
+		.attr("preserveAspectRatio", "xMidYMid meet")
 		.append("g")
 		.attr("id","veld")
 	
 	var force = d3.layout.force()
-		.nodes(graaf.nodes)
-		.links(graaf.edges)
+		.nodes(graaf[0].nodes)
+		.links(graaf[0].edges)
 		.charge(-60)
 		.gravity(0)
 		.linkDistance(25)//needs to vary with group[n-1]
@@ -232,33 +207,31 @@ function drawGraph(graaf){
 
 	var edge = svg.selectAll(".link")
 		.attr("id","edges")
-		.data(graaf.edges)
+		.data(graaf[0].edges)
 		.enter().append("line")
 		.attr("class", "link");
 
 	var node = svg.selectAll(".node")
-		.data(graaf.nodes,function(d){return d.id})
+		.data(graaf[0].nodes,function(d){return d.id})
 		.enter().append("g")
 		.attr("class", "node")
-		.call(force.drag)
-		.on("click",function(d){console.log(d)})
+		.call(force.drag);
 
 	var pie = d3.layout.pie()
 		.value(function(d){return d.waarde})
 		.sort(null);
 
     var arc = d3.svg.arc()
-		.outerRadius(function(d){radius(nodelookup[d.data.id].lengte)})
-		
+		.outerRadius(function(d){return radius(nodelookup[d.data.id].lengte)})
 	
 	var color = d3.scale.category10();
 	
 	node.selectAll("path")
-		.data(function(d) {if(d.tier==0){return pie(d.proportions)}else{return d.id}})
+		.data(function(d) {return pie(d.proportions)})
 		.enter()
 		.append("path")
-		.attr("d",function(d){if(d.tier==0){return arc}else{return "circle"}})
-		.attr("fill", function(d){if(d.tier==0){return color(d.data.origin)}else{return "black"}})
+		.attr("d",arc)
+		.attr("fill", function(d) {if(n==0){return color(d.data.origin)}else{return color(4)}})
 		.attr("stroke",12);
 									
 	function tick(e) {
@@ -276,9 +249,6 @@ function drawGraph(graaf){
 			.attr("y2", function(d){return d.target.y});
 	}	
 }
-
-function zooming(d){
-	console.log(d)}
 
 function radius(len){
 	procent=(len*100)/maxLen
@@ -299,5 +269,7 @@ function coordinates(originnummer){
 		var cx=0.5*w+0.2*aspRatio*w*Math.round(1000*Math.sin(((1+originnummer*2)*Math.PI)/totalGroups))/1000
 		var cy=0.5*h+0.2*h*Math.round(1000*Math.cos((1+originnummer*2*Math.PI)/totalGroups))/1000
 		return [cx,cy]
-	}//is still skewed slightly past 45 degrees, somehow.
+	}//is still skewed slightly past 45 degrees.
 }
+
+function exporteer(graaf){/*needs to be redone*/}
