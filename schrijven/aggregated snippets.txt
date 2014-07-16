@@ -1,0 +1,163 @@
+Introductie(3-4)
+	answer: "how does a co-assembler work, and what sort of data is produced? What are the steps the underlying algorithm takes in regard to de bruijn graphs?"
+	co-assembly
+	de bruijn graphs
+	discuss a few assemblers in more detail
+	output:fastq/bam/AMOS/454
+	bestaande tools?
+	d3.js
+
+Methods (3 kantjes?)
+	basic task
+	structure
+	functions&parameters
+	datasets
+Results (1?)
+	as much research questions as can be answered
+Discussion (2-3)
+	requirements of good visualisation
+	how far are different tools already
+Future work (2-3)
+	how far is Stringit from the discussed goal
+	rest of the research questions
+	what needs to be done to get there
+	
+Research questions and their tests/answers
+	 "Stringits acceptance of multiple input formats, and use of a universally-accepted output format, makes it widely accessible, and unique in the field" 
+		Features: different inputs and handling of them, exporting into .dot
+		Test: Compare my input/output system with that of other tools
+		In-depth: file formats, and their layout and uses (SAM/dot/asqg/454/others)
+		Answered research question: What is the best way to manipulate and present this sort of data?
+	 
+	"Stringit has an intuitive visual representation for easy access to all information (that is provided by nodes)"
+		Features: node HUD, node sizes
+		Test: compare design with other tools
+		In-depth: How does the visual style of Stringit (and d3) benefit the user?
+		Answered research question: What is the best way to manipulate and present this sort of data?
+
+	"The zooming feature of Stringit allows for both a grand overview and a detailed in-depth analysis for a full and unrivaled view of all the data"
+		Features: zooming
+		Test: user tests.
+		In-depth: Are user expectations of the functionalities of Stringit fulfilled?
+		Answered research question: What are other functionalities that are requisited for the functioning of Stringit?
+
+	"Grouping the contig nodes based on sample read mapping readily shows regions of overlapping and/or diverging sequence"
+	"Combining (co-)assembly and read map data into a single visualization is something that is not provided by other tools"
+		Features: data-translating code, coloring of nodes based on mapped reads (future: highlighting of co-mapped reads from different samples?)
+		Test: use cases. Show how easy it is to find regions of interest, compared to other tools
+		In-depth: niche of tool. When to use this, and when to use other tools.
+		(HP) diploid genomes/co-assemblies
+		Not: synteny, msa, read mapper?
+		Answered research question: What are the limitations of similar tools? 
+
+Conclusion
+	Research main question: "How is co-assembly data best visualized, so that it is suitable for analysis?"
+
+	
+Sources
+	graphs and string graph theory
+		http://www.nature.com/ng/journal/v44/n2/full/ng.1028.html#supplementary-information
+		http://alexbowe.com/succinct-debruijn-graphs/
+		http://arxiv.org/pdf/1307.7925v1.pdf
+		http://www.homolog.us/blogs/blog/category/de-bruijn/
+		http://www.cs.toronto.edu/~brudno/csc2427/myers.pdf
+		http://bioinformatics.oxfordjournals.org/content/26/12/i367.full.pdf
+	assembler bronnen
+		http://www.ncbi.nlm.nih.gov/pmc/articles/PMC2874646/?tool=pubmed
+		http://contig.wordpress.com/2010/06/10/running-newbler-de-novo-assembly/
+		http://gage.cbcb.umd.edu/
+		http://bioinformatics.oxfordjournals.org/content/early/2013/06/05/bioinformatics.btt273.full.pdf 
+		http://www.gigasciencejournal.com/content/pdf/2047-217X-2-10.pdf
+		http://cortexassembler.sourceforge.net/cortex_var_user_manual.pdf
+	Assemblers
+		http://www.ncbi.nlm.nih.gov/pmc/articles/PMC3290790/pdf/549.pdf
+		http://www.cs.utoronto.ca/~brudno/csc2431w10/abyss_explore.pdf
+		http://seqanswers.com/forums/showthread.php?t=16695
+		http://www.ncbi.nlm.nih.gov/pmc/articles/PMC2336801/
+		http://seqanswers.com/wiki/Velvet
+		http://genome.cshlp.org/content/18/5/821.full.pdf
+	general sources
+		http://www.ncbi.nlm.nih.gov/pubmed/23047563
+		http://bioinformatics.oxfordjournals.org/content/29/22/2826.long
+		http://www.nature.com/nmeth/journal/v8/n1/pdf/nmeth.1527.pdf
+		http://bioinformaticsonline.com/blog/view/4574/tools-to-detect-synteny-blocks-regions-among-multiple-genomes
+		http://www.genomeweb.com/sequencing/start-building-human-pan-genome-bgi-de-novo-assembles-two-genomes-illumina-data
+		http://www.plosone.org/article/info\%3Adoi\%2F10.1371\%2Fjournal.pone.0068731\#pone-0068731-g006
+	other tools
+		https://usegalaxy.org/u/dan/p/maf
+		http://www.ncbi.nlm.nih.gov/pmc/articles/PMC3031037
+		http://www.bcgsc.ca/platform/bioinfo/software/sam
+		
+Conceptual background
+	Terug naar de basis: we kijken naar co-assemblies. Hoe kan mijn tool het beste gebruik maken van die kennis tov de data? Hoe kan het dat op zo’n manier doen dat het iets toevoegt aan het huidige assortiment aan tools, en niet alleen maar een mooi plaatje is?
+
+	Als we weten dat we naar een co-assembly kijken terwijl we een contig graph visualiseren, dan is het interessant om te kijken naar de regios in de graph waar de soorten samen voorkomen. Dit uit zich in een contig graph als nodes en edges die een combinatie zijn van meerdere soorten/origins/samples.De beste manier om hier de nadruk op te leggen is het verschillend behandelen van deze meervoudig samengestelde regio’s (waar de nodes zijn samengesteld uit reads van verschillende bronnen) vergeleken met enkelvoudige regio’s (nodes waarvan de reads overwegend 1 bron hebben). Dit kan door de regios respectievelijk: 
+	 
+	1. in het midden en aan de rand van het scherm weer te geven 
+	2. fellere en valere kleuren toe te kennen 
+	3. groter en kleiner weer te geven 
+	4. meer en minder ruimte op het scherm te geven 
+
+	De verdeling tussen deze regios is echter niet zwart-wit. In meervoudige regios is er een overeenkomst tussen beide sequences. Afhankelijk van hoe groot we een regio definieren, ontstaat er een verschil in wat een meervoudige regio precies is. Ook binnen een regio van een vaste grootte zijn er nodes en paden die meer of minder interesse wekken. De combinatie van deze twee variabelen leidt er toe dat er een selectie gemaakt moet worden. Als er naar een grotere regio gekeken wordt, moeten de minder interessante paden wegvallen om meer overzicht te scheppen in het restant. 
+
+	Het wegvallen van de paden wordt gedaan door het samenvoegen van nodes. Hierbij worden de ’minder interessante’ paden geaggregeerd tot een enkele node, wat meer ruimte laat voor de andere nodes. De schaal van de regio bepaald wat er als ’minder interessant’ wordt gedefinieerd: hoe groter de regio, hoe groter de drempelwaarde van diversiteit/overlap/verschil in sequence wordt. Onder deze drempelwaarde wordt er samengevoegd, erboven niet. 
+
+	Om al deze functies toe te voegen aan Stringit, moet het programma in staat zijn deze eigenschappen aan de graph data af te leiden. Dit betekent dat het correct de verschillende nodes moet kunnen splitsen in groepen, gebaseerd op de verschillende samples. Ook moet het de nabijheid van andere nodes kunnen zien om deze samen te kunnen voegen. De data die hiervoor nodig is moet van de gebruiker komen, en moeten worden gestandaardiseerd. Deze abstrahering kan alleen gebeuren als er een conceptueel verschil wordt gemaakt tussen wat er gevisualiseerd wordt en de onderliggende data. Op het moment wordt de letterlijke assembly graph op het scherm gebracht door Stringit. Dit zal moeten veranderen, en er zal onderscheid moeten worden gemaakt tussen de assembly graph en de gevisualiseerde graph. In de laatste is een node niet altijd meer een enkele contig, maar een samenvatting van alle contigs en links die hierin zijn geaggregeerd.
+
+Re-evaluation of assumptions and future plans (random ramblings, might not be useful)
+	Since the previous pages have been written, I learned a lot about the functioning of Stringit and assemblies in general, I have seen a lot more data, and some of the assumptions that I had before can be resolved. The following text tries to reconsolidate the previous pages with the facts as they stand now, and the current vision for Stringit. 
+	One of the previous unknowns was the selecting criteria for the different zoom tiers. Currently, 5 different tiers are defined and can be calculated from the mapped reads for each contig. However, they are no longer based on read length, and they do not use any form of threshold values. Instead, the tiers are based on the differences and similarity between neighbouring nodes. The 5 chosen tiers make sure that the data can go from 1 chromosome per node to 1 contig per node in a few easy steps. One other aspect of Stringit that has disappeared is the notion of an ’interesting region’. Stringit will no longer define such a thing, instead using its visual tools to display the different nodes and tiers more clearly. 
+	Stringit is currently capable of using AMOS bank files. The completion of a script that gathers all necessary information in an easy-to-read file for use in Stringit is evidence that a large data bank can be consolidated in a relatively small file. Hopefully, there will be enough time in this project to write similar scripts that read for example SAM/BAM files, or Newble ACE files. Without all the information about the contigs, their links, and the reads that map to them, Stringit can not do a proper job, and the availability of a wide range of data formats makes Stringit available for more users. 
+	It is interesting to note that when the zoom tiers are finished, Stringit should finally be capable of handling all the nodes that Cortex produces. Cortex has a k-mer graph as output, not yet concatenating the overlapping sequences in a single node. Tier 2 takes care of that in Stringit anyway, which drastically reduces the number of visible nodes. Since Cortex doesn’t provide any read mapping, this still wouldn’t produce a nicely researchable network, but the possibility is at least there. 
+	In the beginning of April, a to-do list was made with functions that still needed inclusion in Stringit. As it stands now, a few of these have not been finished yet. 
+
+	Zooming/grouping of nodes: 
+		functions have been written, error-correction needs to start. This function will be included. escaping characters in loaded files: is not necessary, as no file is uploaded to a server. All calculations will be done client-side, so at worst a wrong file will crash the browser. 
+	Hierarchical clustering with node size as edge weight: 
+		node sizes or overlap sizes no longer are considered useful information for Stringit, so this function wil not be included. Hierarchical clustering might still be used (see below), but not based on these criteria. The use of node direction when drawing edges is also already commented on. This will not be included.
+	Filetype recognition: 
+		Stringit can recognize the file coming from either Newbler or AMOS, and hopefully SAM in the future as well. 
+	Graph exporting: 
+		there is currently a small function that will write the graph as a .dot graph to a file, but this has not been touched since the inclusion of several newer functions. As such, graph exporting in formats that can be used by other programs (cytoscape, graphviz) is not yet finished. Depending on the ease of the task and the time at hand, the function will get updated to include more data from the current state of Stringit. PNG export is not yet included at all. Exporting the graph as a vector/image file cannot be done yet. Users can take a printscreen though. 
+	HUD/mouseover for information:
+		This is another larger project that still needs to be done. It is one of the more useful parts, providing information about selected nodes/sequence, and giving access to further research tools. Most of the things have either been finished or have been rendered obsolete. A few projects still need work, but generally, Stringit came a long way since then, either removing the need for a function, or including it. 
+
+	Both Newbler and AMOS include the direction of the nodes for each edge. However, in its current form Stringit doesn’t need these directions. For scaffolding reasons it is understandable why they are included, but currently Stringit draws the edges out of nodes in such a way that not only is it not necessary to include them, but nontrivial as well. 
+	In the previous pages, several visual clues were listed to help the user distinguish regions within the graph. Currently, not all of these are implemented. The lengthening and shortening of edges between nodes can be used to distinguish between groups even if they are expanded, and the node size will still be used to relay sequence size. However, a visual clue to signalize the tier of the different nodes has not been planned yet, while that would be good to show clearly. Using node opacity doesn’t achieve the necessary effect for this case. Another possibility would be the thickness of the border around every node, or the color/hue of the connecting edges. 
+	One assumption that still stands is the assumption that a single sample in the coassembly consists of a single organism. Stringit can not handle a single-sample mix of organisms (for example a metagenome). This is a physical limitation, and not something that can be solved with just Stringit. It all depends on the output of the used read mapper how the samples can be distinguished (usually by name). 
+	A few cases of node layouts have been made, to see how Stringit will react on these while tiering the nodes. In the best case scenario, scrolling through the tiers will easily show the different regions in the mini-networks, making manual search for finishing or other tasks a lot easier.  The use of graph-travelling algorithms has been mentioned before. Currently, it is not deemed necessary for Stringit. Most decision regarding nodes belonging to a certain group can be made based on a single edge. However, the selection criteria for tier 4 currently is not very efficient. It is based on read map averages over the different nodes in a group in regard to the global average and the surrounding average. If differently calculated, a single-linking clustering approach could be used to speed up this process. 
+	Use of algorithms like Dijkstra or A* will not be necessary, because no function of Stringit will be used to calculate an efficient path between two nodes. Biologically, this information would not be of use. 
+	Although the work on the group assignment within tiers is out of the production stage, it still needs to be tested and refined. Only after that can we look into further function of the d3.js library, for collapsing and expansion of the displayed graph. 
+	Lastly, briefly reading through the Log Frame provided with the proposal shows the progress so far. All activities are fulfilled (except for a final presentation), all indicators and evidence of those activities is available on either github or the server, and there were no additional assumptions found to hamper that work. Moving one row up to output, the only indicator not yet fulfilled is the usability of Stringit by any other person than its maker. There are plans to do this in the near future, as soon as development of the node aggregation is finished.
+
+Summary
+	After obtaining a reference genome, the next step would be to create a pan-genome that encompasses all the genetic variation available within a species.  Among others, co-assembly  can be  used to create a pan-genome.  Co-assembly  is  a  method  to  assemble  the  sequence  of  multiple  (related)  samples  at  the same  time.  The  necessity  of  a  reference  genome  is  gone  with  this  method,  and  it  creates  new possibilities in regard to the comparison of the assembled sequences (Nijkamp, 2012).
+	Computationally,  pan-genome  analysis  can  be  done  using  variant  calling  software.  However,  this produces  an  enormous  list  of  variants.  To  help  computers  interpret  the  results,  human  pattern recognition via a visual tool is a helpful addition.
+	To help the analysis of a  pan-genome, a browser tool  will be  developed that will  visualize the data and helps pattern recognition. This tool, called Stringit (string graph imaging tool)  will be built in javascript, and  be  made  available  online.  The  overall  goal  will  be  to  make  co-assembly  analysis  easier,  something that synteny browsers already achieve in the case of ‘normal’ assembly analyses.
+
+Scientific background (for intro)
+	In short, a genome is sequenced in the following way. A sequencing machine takes DNA as input, fragmented in small pieces. It produces a text file of the sequence of each of those pieces. Dedicated assembler programs take all these files (sometimes several millions), and stitch them together via overlap to create a genomic sequence. This is a long and memory-intensive process that takes a lot of processing power. To reduce the resources these calculations take and the time this process costs, modern assemblers use an algorithm that makes use of graph theory.
+
+	Most current assemblers use de bruijn string graphs to process the reads while in the process of assembling. It does this by first breaking up the reads in even smaller overlapping, k-mers. These usually have a length of somewhere around 25-31. Then it looks through all these k-mers and start noticing overlaps. Not only will it find overlaps between k-mers that originate from the same read, but also from different reads. These will also be grouped, and the combined read will be stored as a graph (Compeau, 2011). 
+
+	Figure 1: k-mers, with k=7. Picture adapted from http://www.homolog.us/blogs/blog/2011/07/28/debruijn-graphs-i/
+
+	In such a graph, the nodes represent overlaps between k-mers, and the edges represent the differences between them. In an ideal case, only a single node is formed, averting the need for such an approach. However, biological imperfections of the sample, as well as technological artifacts, will introduce small errors. Luckily, each bit of sequence is covered a multitude of times (general coverages go between 30 and 100). This makes sure that when there is an error that introduces an edge between two nodes, the error sequence is covered less than the correct sequence. The assembler program chooses a consensus from the paths with higher coverages when it travels through the graph.
+
+	There are a lot of different assemblers currently available. While most of them work as outlined above, they may differ on the exact execution of it. Only a few are capable of co-assembly, and some are better with smaller genomes than with larger. Via competitions such as GAGE(-B) and Assemblathon, there have been efforts to objectively compare a variety of different assemblers. The general consensus of these comparisons was that there is a broad range of metric that assemblers need to be good at in order to be considered good. As such, there is not a single ‘best’ assembler, and a researcher must do his best to pick a suitable one to his specific samples (Bradnam et al., 2013). A few of the metrics that are usually used in the judgment of assemblers are the size of the contigs that are produced, and paired with that, the N50. N50 is the size of a contig at which all contigs of that size and larger contain at least 50% of the assembled sequence. The larger that number, and the lower the number of contigs, the better the data. 
+
+	It is virtually impossible that only a single contig is produced as output. DNA contains a lot of repetitive elements, which make it hard for the assembler to decide which edge is the correct one to take. To alleviate this problem, the already assembled sequence of a related species can be used alongside the current one, if one is available. The reference sequence can then be used as a guide, with which the assembler can then again pick the right path.
+
+	For the creation of a pan-genome, the use of a reference genome is not possible. A pan-genome is a genome sequence that accounts for all the possible genetic variation within (part of) the species. A reference genome is merely a chosen single sequence, which does not account for this variation. Using a reference genome when creating a pan-genome is therefore not possible, because the reference will rule out any aberrant data as technical variation, instead of as biological variation. This is especially bad when biological variants is specifically what is being researched (Nijkamp, 2012). Therefore, a lot of effort is put into optimizing de novo assembly, which does not require a reference sequence.
+
+	For the process of creating and analysing a pan-genome, the assembly process needs to be slightly altered compared to described above. And as already described, a reference genome cannot be used. An efficient way to combine both these limitations is the use of a co-assembly. In a co-assembly, two or more samples are assembled concurrently. In this way, they can be used as a guide or control for each other, and more biological variation is more easily spotted. The way this is done with the de bruijn graphs, is that each sample is assigned a ‘colour’. Then, when traversing the graph, the colour is used as a route. With this, differences in sequence get directly mapped to different samples (Nijkamp, 2012).
+	 
+	Different assembly programs produce different file formats in which this mapping is exported. Additionally, graph files already have a lot of different file extensions associated with them. In regard to the tool that will be developed, several different options for input and output file formats are viable. Ideally, multiple input formats are accepted, and output can be produced in a file format that is usable for further research. There are other tools available for research on assembled sequence data. Synteny browsers such as Strudel or Symap serve a different purpose, and will most likely be used Stringit. To make the transition between tools as easy as possible, using the same file formats whenever possible is preferable. Other tools such as pan-genome profile analysis tool PanGP are also used in this field, and also need to be considered. In short, Stringit needs to be able to convert the (binary) graph files produced by assemblers into something universally readable, after which the visualisation can take place. Additionally, exportation into other useful file formats need to be considered.
+
+Output
+	A web-based  tool will be developed  in javascript,  for visualisation of co-assembly  data. Specifically,  the visualisation  of  colored  de  bruijn  graphs  will  be  made.  All  its  functions  will  be  documented  in  an accompanying  report.  This  report  will  also  contain  a  study  on  related  tools  for  the  field,  what  their limitations are, and how they differ from this visualisation tool. While no final name has been chosen, the tool shall be called Stringit, short for “string graph imaging tool”.
+	
+Focus
+	1.  Conversion between different file formats; for easy import and export of data, so that integration 	with other tools is not a limiting factor for analysis.
+	2.  An  intuitive  interface;  pattern  recognition  is  easiest  if  the  string  graph  data  is  presented  in  a natural form. 
+	3.  Different  zoom  levels;  the  research  possible  with  Stringit  ranges  from  genome-wide  to sequence-specific.
