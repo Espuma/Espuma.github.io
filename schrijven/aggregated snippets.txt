@@ -6,13 +6,12 @@ Introductie(3-4)
 	output:fastq/bam/AMOS/454
 	bestaande tools?
 	d3.js
-
-Methods (3 kantjes?)
+Methods (2-3 kantjes?)
 	basic task
 	structure
 	functions&parameters
 	datasets
-Results (1?)
+Results (2)
 	as much research questions as can be answered
 Discussion (2-3)
 	requirements of good visualisation
@@ -23,7 +22,7 @@ Future work (2-3)
 	what needs to be done to get there
 	
 Research questions and their tests/answers
-	 "Stringits acceptance of multiple input formats, and use of a universally-accepted output format, makes it widely accessible, and unique in the field" 
+	"Stringits acceptance of multiple input formats, and use of a universally-accepted output format, makes it widely accessible, and unique in the field" 
 		Features: different inputs and handling of them, exporting into .dot
 		Test: Compare my input/output system with that of other tools
 		In-depth: file formats, and their layout and uses (SAM/dot/asqg/454/others)
